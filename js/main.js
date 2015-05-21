@@ -11,31 +11,49 @@ var tools = {
 	}
 }
 
+var commands = {
+	'freedraw' : function(){
+		console.log("paper.project");
+	}
+}
+
+$("#command-line").keyup(function(e){ 
+	if( e.which == 13 ){
+    	e.preventDefault();
+    	commands[$("#command-line").val()];
+    }
+});
+
 var initTools = function() {
-	var path;
+	var currentPath;
 
-	tools['freedraw'].tool.onMouseDown = function(e){
-		path = new paper.Path();
-		path.strokeColor = 'black';
-		path.add(e.point);
-	};
-
-	tools['freedraw'].tool.onMouseDrag = function(e){
-		path.add(e.point);
-	}
-
-	tools['freedraw'].tool.onMouseUp = function(e){
-		path.simplify(15);
-	}
-
-	tools['freedraw'].tool.activate();
+	tools['freedraw'].tool
+	.on("mousedown", function(e){
+		if(currentPath){
+			currentPath.fullySelected = false;
+		}
+		currentPath = new paper.Path();
+		currentPath.strokeColor = 'black';
+		currentPath.add(e.point);
+	})
+	.on("mousedrag", function(e){
+		currentPath.add(e.point);
+	})
+	.on("mouseup", function(e){
+		currentPath.simplify(15);
+		currentPath.fullySelected = true;
+	});
 }
 
 window.onload = function() {
 	var canvas = document.getElementById('paper-canvas');
-	canvas.height = window.innerHeight;
-	canvas.width = window.innerWidth;
+	
+	canvas.height = window.innerHeight * window.devicePixelRatio;
+	canvas.width = window.innerWidth * window.devicePixelRatio;
+	canvas.style.height = window.innerHeight + "px";
+	canvas.style.width = window.innerWidth + "px";
 
+	$('#command-line').focus();
 
 	paper.setup(canvas);
 	initTools();
