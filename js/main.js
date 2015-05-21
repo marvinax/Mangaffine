@@ -1,3 +1,5 @@
+
+
 var tools = {
 	'freedraw' : {
 		tool : new paper.Tool(),
@@ -42,16 +44,6 @@ var initTools = function() {
 	});
 
 	tools['path'].tool
-	.on('mousemove', function( e ) {
-		paper.project.deselectAll();
-
-		selectedPaths.forEach(function(path){
-			path.fullySelected = true;
-		})
-
-		if( e.item )
-			e.item.fullySelected = true;
-	})
 	.on('mouseup', function( e ){
 		var hitResult = paper.project.hitTest( e.point, {
 			segments:  true,
@@ -61,21 +53,26 @@ var initTools = function() {
 			tolerance: 8
 		});
 
+		paper.project.deselectAll();
 		if( hitResult ) {
 			var hittedPathIndex = selectedPaths.indexOf(hitResult.item);
+			console.log(hittedPathIndex);
 			if(hittedPathIndex == -1){
 				selectedPaths.push(hitResult.item);
 			} else {
-				selectedPaths.splice(1, hittedPathIndex);
+				selectedPaths.splice(0, hittedPathIndex);
 				hitResult.item.fullySelected = false;
 			}
-			
 		} else {
-			paper.project.deselectAll();
 			selectedPaths.forEach(function(path){
-				path.fullySelected = true;
+				path.fullySelected = false;
 			})
+			selectedPaths = [];
 		}
+
+		selectedPaths.forEach(function(path){
+			path.fullySelected = true;
+		})
 
 	})
 }
