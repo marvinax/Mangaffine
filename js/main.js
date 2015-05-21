@@ -11,38 +11,73 @@ var tools = {
 	}
 }
 
-var commands = {
-	'freedraw' : function(){
-		console.log("paper.project");
-	}
-}
+var selectedPaths = [];
+var currentDrawingPath;
 
 $("#command-line").keyup(function(e){ 
 	if( e.which == 13 ){
     	e.preventDefault();
-    	commands[$("#command-line").val()];
+    	var command = $("#command-line").val();
+    	if(tools[command]){
+    		tools[command].tool.activate();
+    		$('#status-bar').html("<b>"+tools[command].name+":</b> "+tools[command].desc);
+    	}
+    	$("#command-line").val("");
     }
 });
 
 var initTools = function() {
-	var currentPath;
-
 	tools['freedraw'].tool
 	.on("mousedown", function(e){
-		if(currentPath){
-			currentPath.fullySelected = false;
-		}
-		currentPath = new paper.Path();
-		currentPath.strokeColor = 'black';
-		currentPath.add(e.point);
+		currentDrawingPath = new paper.Path();
+		currentDrawingPath.strokeColor = 'black';
+		currentDrawingPath.add(e.point);
 	})
 	.on("mousedrag", function(e){
-		currentPath.add(e.point);
+		currentDrawingPath.add(e.point);
 	})
 	.on("mouseup", function(e){
-		currentPath.simplify(15);
-		currentPath.fullySelected = true;
+		currentDrawingPath.simplify(15);
+		currentDrawingPath.fullySelected = true;
 	});
+
+	tools['path'].tool
+	.on('mousemove', function( e ) {
+		paper.project.deselectAll();
+
+		selectedPaths.forEach(function(path){
+			path.fullySelected = true;
+		})
+
+		if( e.item )
+			e.item.fullySelected = true;
+	})
+	.on('mouseup', function( e ){
+		var hitResult = paper.project.hitTest( e.point, {
+			segments:  true,
+			fill:      false,
+			stroke:    true,
+			handles:   true,
+			tolerance: 8
+		});
+
+		if( hitResult ) {
+			var hittedPathIndex = selectedPaths.indexOf(hitResult.item);
+			if(hittedPathIndex == -1){
+				selectedPaths.push(hitResult.item);
+			} else {
+				selectedPaths.splice(1, hittedPathIndex);
+				hitResult.item.fullySelected = false;
+			}
+			
+		} else {
+			paper.project.deselectAll();
+			selectedPaths.forEach(function(path){
+				path.fullySelected = true;
+			})
+		}
+
+	})
 }
 
 window.onload = function() {
