@@ -1,19 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css"/>
 </head>
 <body>
-    <div class="input-group col-md-12">
+    <div>
+        <div class="navbar navbar-default navbar-fixed-top"
+             style="opacity:0.5;margin:5px;">
           <input id="command-line" type="text" class="form-control" placeholder="Begin by typing your commands here..">
+          <div id="status-bar"></div>
+        </div>
+
+      <div id="viewport"></div>
     </div>
-    <div id="status-bar"></div>
-
-    <canvas id="paper-canvas" style="{position:absolute; left:0px; top:0px;}"></canvas>
-
-    <script src="js/jquery-2.1.3.min.js"></script>
-    <script src="js/bootstrap.min.js"></script>
-    <script src="js/paper-full.min.js"></script>
-    <script src="js/main.js"></script>
+  <script src="bower_components/jquery/dist/jquery.min.js"></script>
+  <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script src="bower_components/three.js/three.min.js"></script>
+  <script src="bower_components/three.js-controls/src/TrackballControls.js"></script>
+  <script src="js/UI.Three.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
