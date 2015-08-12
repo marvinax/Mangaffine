@@ -30,11 +30,13 @@ ThreeViewport.prototype.initControl = function(demoName){
 	this.ctrl.dynamicDampingFactor = 0.3;
 
 	this.ctrl.addEventListener('start', function(e){
+		console.log('start')
 		this.ctrl.isChanging = true;
 		this.animate();
 	}.bind(this));
 
 	this.ctrl.addEventListener('change', function(e){
+		console.log('change');
 		this.ctrl.isChanging = true;
 	}.bind(this));
 };
@@ -75,12 +77,12 @@ ThreeViewport.prototype.render = function(){
 
 ThreeViewport.prototype.animate = function(){
 	var that = this;
-	this.ctrl.update();
-	// if(this.ctrl.isChanging)
+	if(that.ctrl.isChanging)
 		requestAnimationFrame(function(){
+			that.ctrl.update();
 			that.animate();
 			that.render();
-	    });	
+	    });
 }
 
 ThreeViewport.prototype.init = function(demoName) {
