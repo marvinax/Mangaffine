@@ -47,11 +47,21 @@
 	var THREE = __webpack_require__(1);
 	var ThreeViewport = __webpack_require__(2);
 
+	var lineMaterial = new THREE.MeshBasicMaterial({
+		color : 0x000000
+	})
+
+	var centerGeom = function(){
+		var geom = new THREE.CircleGeometry(20, 50);
+		geom.vertices.shift();
+		return geom;
+	}
+
 	window.onload = function() {
 		$('#viewport').height(window.innerHeight).width(window.innerWidth);
 		$('#command-line').focus();
 		ThreeViewport.init($('#viewport').get(0));
-		ThreeViewport.add(new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshLambertMaterial()));
+		ThreeViewport.add(new THREE.Line(centerGeom(), lineMaterial));
 	}
 
 /***/ },
@@ -35267,7 +35277,6 @@
 				scene = new THREE.Scene();
 				scene.add(camera);
 				scene.add(ambient);
-				scene.add(new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshLambertMaterial()));
 			},
 
 			render : function(){
@@ -35286,7 +35295,7 @@
 			init : function(canvasElement){
 				var width = parseInt(canvasElement.style.width, 10),
 					height = parseInt(canvasElement.style.height, 10);
-				console.log(width);
+
 				this.initScene(width, height);
 				this.initRenderer(canvasElement, width, height);
 				this.initControl(canvasElement);

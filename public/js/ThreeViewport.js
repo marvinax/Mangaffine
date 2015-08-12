@@ -55,7 +55,6 @@ module.exports = (function(){
 			scene = new THREE.Scene();
 			scene.add(camera);
 			scene.add(ambient);
-			scene.add(new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshLambertMaterial()));
 		},
 
 		render : function(){
@@ -74,7 +73,7 @@ module.exports = (function(){
 		init : function(canvasElement){
 			var width = parseInt(canvasElement.style.width, 10),
 				height = parseInt(canvasElement.style.height, 10);
-			console.log(width);
+
 			this.initScene(width, height);
 			this.initRenderer(canvasElement, width, height);
 			this.initControl(canvasElement);
