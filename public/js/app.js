@@ -44,112 +44,18 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var ThreeViewport = __webpack_require__(1);
+	var THREE = __webpack_require__(1);
+	var ThreeViewport = __webpack_require__(2);
 
 	window.onload = function() {
 		$('#viewport').height(window.innerHeight).width(window.innerWidth);
 		$('#command-line').focus();
-		ThreeViewport.init('viewport');
+		ThreeViewport.init($('#viewport').get(0));
+		ThreeViewport.add(new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshLambertMaterial()));
 	}
 
 /***/ },
 /* 1 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(2);
-	var Trackball = __webpack_require__(3);
-
-
-	module.exports = (function(){
-
-		// Fundamental objects of a three.js view
-		var materials, ctrl, rndr, scene, camera;
-
-		return {
-			initRenderer : function(canvasID, width, height){
-				rndr = new THREE.WebGLRenderer({
-					alpha:true,
-					antialias: true
-				});
-
-				$("#"+canvasID).get(0).appendChild( rndr.domElement );
-
-				rndr.setPixelRatio(window.devicePixelRatio);
-				rndr.setSize(width, height);
-				rndr.setClearColor( 0xfafafa, 1);
-			},
-
-			initControl : function(canvasID){
-				ctrl = new Trackball(camera, $("#"+canvasID).get(0));
-				ctrl.rotateSpeed = 1.0;
-				ctrl.zoomSpeed = 1.2;
-				ctrl.panSpeed = 0.8;
-				ctrl.noZoom = false;
-				ctrl.noPan = false;
-				ctrl.staticMoving = false;
-				ctrl.dynamicDampingFactor = 0.3;
-			},
-
-			initScene : function(width, height){
-				camera = new THREE.PerspectiveCamera( 20, width / height, 10, 1000 );
-				camera.position.set(0, 0, 200);
-
-				var ambient = new THREE.AmbientLight(0x202020);
-
-				var light = new THREE.DirectionalLight( 0xe0e0e0, 1 );
-					light.position = camera.position;
-				
-				camera.add( light );
-
-				scene = new THREE.Scene();
-				scene.add(camera);
-				scene.add(ambient);
-
-				scene.add(new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshLambertMaterial()));
-			},
-
-			render : function(){
-				rndr.render(scene, camera);
-			},
-
-			animate : function(){
-				var that = this;
-				requestAnimationFrame(function(){
-					ctrl.update();
-					that.animate();
-					that.render();
-				});
-			},
-
-			resize : function(canvasID){
-				var width = $('#'+canvasID).width(),
-					height = $('#'+canvasID).height();
-				rndr.setSize(width, height);
-			},
-
-			init : function(canvasID){
-				var width = $('#'+canvasID).width(),
-					height = $('#'+canvasID).height();
-				this.initScene(width, height);
-				this.initRenderer(canvasID, width, height);
-				this.initControl(canvasID, width, height);
-
-				$(window).resize(function(){
-					var width = $('#'+canvasID).width(),
-						height = $('#'+canvasID).height();
-					this.rndr.setSize(width, height);
-					this.camera.aspect = width/height;
-					this.camera.updateProjectionMatrix();
-				}.bind(this));
-				
-				this.render();
-				this.animate();
-			}
-		}
-	})();
-
-/***/ },
-/* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var self = self || {};// File:src/Three.js
@@ -35301,6 +35207,97 @@
 
 
 /***/ },
+/* 2 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+	var Trackball = __webpack_require__(3);
+
+
+	module.exports = (function(){
+
+		// Fundamental objects of a three.js view
+		var ctrl, rndr, scene, camera;
+
+		return {
+
+			add : function(graphic){
+				scene.add(graphic)
+			},
+
+			getCtrl : function(){
+				return ctrl;
+			},
+
+			initRenderer : function(canvasElement, width, height){
+				rndr = new THREE.WebGLRenderer({
+					alpha:true,
+					antialias: true
+				});
+
+				canvasElement.appendChild( rndr.domElement );
+
+				rndr.setPixelRatio(window.devicePixelRatio);
+				rndr.setSize(width, height);
+				rndr.setClearColor( 0xfafafa, 1);
+			},
+
+			initControl : function(canvasElement){
+				ctrl = new Trackball(camera, canvasElement);
+				ctrl.rotateSpeed = 1.0;
+				ctrl.zoomSpeed = 1.2;
+				ctrl.panSpeed = 0.8;
+				ctrl.noZoom = false;
+				ctrl.noPan = false;
+				ctrl.staticMoving = false;
+				ctrl.dynamicDampingFactor = 0.3;
+			},
+
+			initScene : function(width, height){
+				camera = new THREE.PerspectiveCamera( 20, width / height, 10, 1000 );
+				camera.position.set(0, 0, 200);
+
+				var ambient = new THREE.AmbientLight(0x202020);
+
+				var light = new THREE.DirectionalLight( 0xe0e0e0, 1 );
+					light.position = camera.position;
+				
+				camera.add( light );
+
+				scene = new THREE.Scene();
+				scene.add(camera);
+				scene.add(ambient);
+				scene.add(new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshLambertMaterial()));
+			},
+
+			render : function(){
+				rndr.render(scene, camera);
+			},
+
+			animate : function(){
+				var that = this;
+				requestAnimationFrame(function(){
+					ctrl.update();
+					that.animate();
+					that.render();
+				});
+			},
+
+			init : function(canvasElement){
+				var width = parseInt(canvasElement.style.width, 10),
+					height = parseInt(canvasElement.style.height, 10);
+				console.log(width);
+				this.initScene(width, height);
+				this.initRenderer(canvasElement, width, height);
+				this.initControl(canvasElement);
+				
+				this.render();
+				this.animate();
+			}
+		}
+	})();
+
+/***/ },
 /* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -35310,7 +35307,7 @@
 	 *
 	 * Adopted to commonjs by Andrei Kashcha
 	 */
-	var THREE = __webpack_require__(2);
+	var THREE = __webpack_require__(1);
 
 	module.exports = Trackball;
 

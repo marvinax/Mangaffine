@@ -5,24 +5,33 @@ var Trackball = require('three.trackball');
 module.exports = (function(){
 
 	// Fundamental objects of a three.js view
-	var materials, ctrl, rndr, scene, camera;
+	var ctrl, rndr, scene, camera;
 
 	return {
-		initRenderer : function(canvasID, width, height){
+
+		add : function(graphic){
+			scene.add(graphic)
+		},
+
+		getCtrl : function(){
+			return ctrl;
+		},
+
+		initRenderer : function(canvasElement, width, height){
 			rndr = new THREE.WebGLRenderer({
 				alpha:true,
 				antialias: true
 			});
 
-			$("#"+canvasID).get(0).appendChild( rndr.domElement );
+			canvasElement.appendChild( rndr.domElement );
 
 			rndr.setPixelRatio(window.devicePixelRatio);
 			rndr.setSize(width, height);
 			rndr.setClearColor( 0xfafafa, 1);
 		},
 
-		initControl : function(canvasID){
-			ctrl = new Trackball(camera, $("#"+canvasID).get(0));
+		initControl : function(canvasElement){
+			ctrl = new Trackball(camera, canvasElement);
 			ctrl.rotateSpeed = 1.0;
 			ctrl.zoomSpeed = 1.2;
 			ctrl.panSpeed = 0.8;
@@ -46,7 +55,6 @@ module.exports = (function(){
 			scene = new THREE.Scene();
 			scene.add(camera);
 			scene.add(ambient);
-
 			scene.add(new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshLambertMaterial()));
 		},
 
@@ -63,26 +71,13 @@ module.exports = (function(){
 			});
 		},
 
-		resize : function(canvasID){
-			var width = $('#'+canvasID).width(),
-				height = $('#'+canvasID).height();
-			rndr.setSize(width, height);
-		},
-
-		init : function(canvasID){
-			var width = $('#'+canvasID).width(),
-				height = $('#'+canvasID).height();
+		init : function(canvasElement){
+			var width = parseInt(canvasElement.style.width, 10),
+				height = parseInt(canvasElement.style.height, 10);
+			console.log(width);
 			this.initScene(width, height);
-			this.initRenderer(canvasID, width, height);
-			this.initControl(canvasID, width, height);
-
-			$(window).resize(function(){
-				var width = $('#'+canvasID).width(),
-					height = $('#'+canvasID).height();
-				this.rndr.setSize(width, height);
-				this.camera.aspect = width/height;
-				this.camera.updateProjectionMatrix();
-			}.bind(this));
+			this.initRenderer(canvasElement, width, height);
+			this.initControl(canvasElement);
 			
 			this.render();
 			this.animate();
