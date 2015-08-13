@@ -1,7 +1,6 @@
 var THREE = require('three');
 var Trackball = require('three.trackball');
 
-
 module.exports = (function(){
 
 	// Fundamental objects of a three.js view
@@ -10,6 +9,12 @@ module.exports = (function(){
 	// For capturing the mouse coord over the screen
 	// and unproject to 3D model.
 	var raycaster, mouse;
+
+	// mouseHandler should provide the method that handle
+	// mouseDown and mouseMove events. ThreeViewports
+	// passes the result of raycasting into those methods,
+	// for further processing.
+	var raycastHandler;
 
 	// Moving canvas (a plane always facing to camera)
 	var canvasPlane = new THREE.Mesh(
@@ -21,33 +26,29 @@ module.exports = (function(){
 				opacity : 0.2
 			}
 		));
+		canvasPlane.name = "canvas-plane";
 
-	var pointMaterial = new THREE.PointCloudMaterial({size :20, color : 0x000000});
-
-	var onTouchStart = function( event ) {
-		event.preventDefault();
-		
-		event.clientX = event.touches[0].clientX;
-		event.clientY = event.touches[0].clientY;
-		onDocumentMouseDown( event );
-	};	
-
-	var onMouseDown = function( event ) {
-		event.preventDefault();
-
+	var getIntersections = function(){
 		mouse.x = ( 2*event.clientX / rndr.domElement.width ) * 2 - 1;
 		mouse.y = - ( 2*event.clientY / rndr.domElement.height ) * 2 + 1;
 		raycaster.setFromCamera( mouse, camera );
+		return raycaster.intersectObjects(scene.children);
+	}
 
-		var intersectPoint = raycaster.intersectObject( canvasPlane )[0].point;
-
-		if(intersectPoint){
-			var pointGeom = new THREE.Geometry();
-				pointGeom.vertices.push(intersectPoint);
-
-			scene.add( new THREE.PointCloud(pointGeom, pointMaterial));			
-		}
+	var onMouseMove = function( event ) {
+		event.preventDefault();
+		raycastHandler.move(event, ctrl, getIntersections());
 	};
+
+	var onMouseDown = function( event ) {
+		event.preventDefault();
+		raycastHandler.down(event, ctrl, getIntersections());
+	};
+
+	var onMouseUp = function(event){
+		event.preventDefault();
+		raycastHandler.up(event, ctrl, getIntersections());
+	}
 
 	return {
 
@@ -125,9 +126,11 @@ module.exports = (function(){
 			});
 		},
 
-		init : function(canvasElement){
+		init : function(canvasElement, raycast){
 			var width = parseInt(canvasElement.style.width, 10),
 				height = parseInt(canvasElement.style.height, 10);
+
+			raycastHandler = raycast;
 
 			this.initScene(width, height);
 			this.initRenderer(canvasElement, width, height);
@@ -135,8 +138,9 @@ module.exports = (function(){
 			this.initRaycaster();
 
 			canvasElement.addEventListener( 'mousedown', onMouseDown, false );
-			canvasElement.addEventListener( 'touchstart', onTouchStart, false );
-			
+			canvasElement.addEventListener( 'mousemove', onMouseMove, false );
+			canvasElement.addEventListener( 'mouseup', onMouseUp, false );
+
 			this.render();
 			this.animate();
 		}

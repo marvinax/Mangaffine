@@ -46,6 +46,7 @@
 
 	var THREE = __webpack_require__(1);
 	var ThreeViewport = __webpack_require__(2);
+	var RaycastHandler = __webpack_require__(4);
 
 	var line1 = new THREE.LineBasicMaterial({
 			opacity : 0.7,
@@ -70,22 +71,25 @@
 		return geom;
 	}
 
-	var circle1 = new THREE.Line(centerGeom(), line1),
-		circle2 = new THREE.Line(centerGeom(), line2),
-		circle3 = new THREE.Line(centerGeom(), line3);
+	var ring1 = new THREE.Line(centerGeom(), line1),
+		ring2 = new THREE.Line(centerGeom(), line2),
+		ring3 = new THREE.Line(centerGeom(), line3);
+		ring1.name = "ring-1";
+		ring2.name = "ring-2";
+		ring3.name = "ring-3";
 
 
 	window.onload = function() {
 		$('#viewport').height(window.innerHeight).width(window.innerWidth);
 		$('#command-line').focus();
-		ThreeViewport.init($('#viewport').get(0));
+		ThreeViewport.init($('#viewport').get(0), RaycastHandler);
 
-		circle2.rotation.x = Math.PI / 2;
-		circle3.rotation.y = Math.PI / 2;
+		ring2.rotation.x = Math.PI / 2;
+		ring3.rotation.y = Math.PI / 2;
 
-		ThreeViewport.add(circle1);
-		ThreeViewport.add(circle2);
-		ThreeViewport.add(circle3);
+		ThreeViewport.add(ring1);
+		ThreeViewport.add(ring2);
+		ThreeViewport.add(ring3);
 	}
 
 /***/ },
@@ -35247,7 +35251,6 @@
 	var THREE = __webpack_require__(1);
 	var Trackball = __webpack_require__(3);
 
-
 	module.exports = (function(){
 
 		// Fundamental objects of a three.js view
@@ -35256,6 +35259,12 @@
 		// For capturing the mouse coord over the screen
 		// and unproject to 3D model.
 		var raycaster, mouse;
+
+		// mouseHandler should provide the method that handle
+		// mouseDown and mouseMove events. ThreeViewports
+		// passes the result of raycasting into those methods,
+		// for further processing.
+		var raycastHandler;
 
 		// Moving canvas (a plane always facing to camera)
 		var canvasPlane = new THREE.Mesh(
@@ -35267,33 +35276,29 @@
 					opacity : 0.2
 				}
 			));
+			canvasPlane.name = "canvas-plane";
 
-		var pointMaterial = new THREE.PointCloudMaterial({size :20, color : 0x000000});
-
-		var onTouchStart = function( event ) {
-			event.preventDefault();
-			
-			event.clientX = event.touches[0].clientX;
-			event.clientY = event.touches[0].clientY;
-			onDocumentMouseDown( event );
-		};	
-
-		var onMouseDown = function( event ) {
-			event.preventDefault();
-
+		var getIntersections = function(){
 			mouse.x = ( 2*event.clientX / rndr.domElement.width ) * 2 - 1;
 			mouse.y = - ( 2*event.clientY / rndr.domElement.height ) * 2 + 1;
 			raycaster.setFromCamera( mouse, camera );
+			return raycaster.intersectObjects(scene.children);
+		}
 
-			var intersectPoint = raycaster.intersectObject( canvasPlane )[0].point;
-
-			if(intersectPoint){
-				var pointGeom = new THREE.Geometry();
-					pointGeom.vertices.push(intersectPoint);
-
-				scene.add( new THREE.PointCloud(pointGeom, pointMaterial));			
-			}
+		var onMouseMove = function( event ) {
+			event.preventDefault();
+			raycastHandler.move(event, ctrl, getIntersections());
 		};
+
+		var onMouseDown = function( event ) {
+			event.preventDefault();
+			raycastHandler.down(event, ctrl, getIntersections());
+		};
+
+		var onMouseUp = function(event){
+			event.preventDefault();
+			raycastHandler.up(event, ctrl, getIntersections());
+		}
 
 		return {
 
@@ -35371,9 +35376,11 @@
 				});
 			},
 
-			init : function(canvasElement){
+			init : function(canvasElement, raycast){
 				var width = parseInt(canvasElement.style.width, 10),
 					height = parseInt(canvasElement.style.height, 10);
+
+				raycastHandler = raycast;
 
 				this.initScene(width, height);
 				this.initRenderer(canvasElement, width, height);
@@ -35381,8 +35388,9 @@
 				this.initRaycaster();
 
 				canvasElement.addEventListener( 'mousedown', onMouseDown, false );
-				canvasElement.addEventListener( 'touchstart', onTouchStart, false );
-				
+				canvasElement.addEventListener( 'mousemove', onMouseMove, false );
+				canvasElement.addEventListener( 'mouseup', onMouseUp, false );
+
 				this.render();
 				this.animate();
 			}
@@ -36011,6 +36019,34 @@
 
 	Trackball.prototype = Object.create(THREE.EventDispatcher.prototype);
 
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+
+	var pointMaterial = new THREE.PointCloudMaterial({
+		size : 20,
+		color : 0xef049d
+	})
+
+	module.exports = (function(){
+		return {
+			move : function(event, ctrl, intersections){
+				// do nothing yet
+			},
+			down : function(event, ctrl, intersections){
+				if (event.shiftKey){
+					ctrl.enabled = false;
+					console.log("yay");
+				}
+			},
+			up : function(event, ctrl, intersections){
+				ctrl.enabled = true;
+			}
+		}
+	})();
 
 /***/ }
 /******/ ]);

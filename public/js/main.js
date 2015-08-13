@@ -1,5 +1,6 @@
 var THREE = require('three');
 var ThreeViewport = require('./ThreeViewport.js');
+var RaycastHandler = require('./RaycastHandler.js');
 
 var line1 = new THREE.LineBasicMaterial({
 		opacity : 0.7,
@@ -24,20 +25,23 @@ var centerGeom = function(){
 	return geom;
 }
 
-var circle1 = new THREE.Line(centerGeom(), line1),
-	circle2 = new THREE.Line(centerGeom(), line2),
-	circle3 = new THREE.Line(centerGeom(), line3);
+var ring1 = new THREE.Line(centerGeom(), line1),
+	ring2 = new THREE.Line(centerGeom(), line2),
+	ring3 = new THREE.Line(centerGeom(), line3);
+	ring1.name = "ring-1";
+	ring2.name = "ring-2";
+	ring3.name = "ring-3";
 
 
 window.onload = function() {
 	$('#viewport').height(window.innerHeight).width(window.innerWidth);
 	$('#command-line').focus();
-	ThreeViewport.init($('#viewport').get(0));
+	ThreeViewport.init($('#viewport').get(0), RaycastHandler);
 
-	circle2.rotation.x = Math.PI / 2;
-	circle3.rotation.y = Math.PI / 2;
+	ring2.rotation.x = Math.PI / 2;
+	ring3.rotation.y = Math.PI / 2;
 
-	ThreeViewport.add(circle1);
-	ThreeViewport.add(circle2);
-	ThreeViewport.add(circle3);
+	ThreeViewport.add(ring1);
+	ThreeViewport.add(ring2);
+	ThreeViewport.add(ring3);
 }
