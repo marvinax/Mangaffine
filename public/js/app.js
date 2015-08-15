@@ -45,8 +45,8 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
-	var ThreeViewport = __webpack_require__(2);
-	var RaycastHandler = __webpack_require__(4);
+	var View = __webpack_require__(6);
+	var Control = __webpack_require__(5);
 
 	var line1 = new THREE.LineBasicMaterial({
 			opacity : 0.7,
@@ -80,16 +80,15 @@
 
 
 	window.onload = function() {
-		$('#viewport').height(window.innerHeight).width(window.innerWidth);
-		$('#command-line').focus();
-		ThreeViewport.init($('#viewport').get(0), RaycastHandler);
+		View.init($('#viewport').get(0));
+		Control.init(View);
 
 		ring2.rotation.x = Math.PI / 2;
 		ring3.rotation.y = Math.PI / 2;
 
-		ThreeViewport.add(ring1);
-		ThreeViewport.add(ring2);
-		ThreeViewport.add(ring3);
+		View.add(ring1);
+		View.add(ring2);
+		View.add(ring3);
 	}
 
 /***/ },
@@ -35245,160 +35244,9 @@
 
 
 /***/ },
-/* 2 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(1);
-	var Trackball = __webpack_require__(3);
-
-	module.exports = (function(){
-
-		// Fundamental objects of a three.js view
-		var ctrl, rndr, scene, camera;
-
-		// For capturing the mouse coord over the screen
-		// and unproject to 3D model.
-		var raycaster, mouse;
-
-		// mouseHandler should provide the method that handle
-		// mouseDown and mouseMove events. ThreeViewports
-		// passes the result of raycasting into those methods,
-		// for further processing.
-		var raycastHandler;
-
-		// Moving canvas (a plane always facing to camera)
-		var canvasPlane = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(180, 90),
-			new THREE.MeshBasicMaterial(
-				{
-					color : 0x7F7F7F,
-					transparent : true,
-					opacity : 0.2
-				}
-			));
-			canvasPlane.name = "canvas-plane";
-
-		var getIntersections = function(){
-			mouse.x = ( 2*event.clientX / rndr.domElement.width ) * 2 - 1;
-			mouse.y = - ( 2*event.clientY / rndr.domElement.height ) * 2 + 1;
-			raycaster.setFromCamera( mouse, camera );
-			return raycaster.intersectObjects(scene.children);
-		}
-
-		var onMouseMove = function( event ) {
-			event.preventDefault();
-			raycastHandler.move(event, ctrl, getIntersections());
-		};
-
-		var onMouseDown = function( event ) {
-			event.preventDefault();
-			raycastHandler.down(event, ctrl, getIntersections());
-		};
-
-		var onMouseUp = function(event){
-			event.preventDefault();
-			raycastHandler.up(event, ctrl, getIntersections());
-		}
-
-		return {
-
-			add : function(graphic){
-				scene.add(graphic)
-			},
-
-			remove : function(graphic){
-				scene.remove(graphic)
-			},
-
-			getCtrl : function(){
-				return ctrl;
-			},
-
-			initRaycaster : function(){
-				raycaster = new THREE.Raycaster();
-				mouse = new THREE.Vector2();
-			},
-
-			initRenderer : function(canvasElement, width, height){
-				rndr = new THREE.WebGLRenderer({
-					alpha:true,
-					antialias: true
-				});
-
-				canvasElement.appendChild( rndr.domElement );
-
-				rndr.setPixelRatio(window.devicePixelRatio);
-				rndr.setSize(width, height);
-				rndr.setClearColor( 0xfafafa, 1);
-			},
-
-			initControl : function(canvasElement){
-				ctrl = new Trackball(camera, canvasElement);
-				ctrl.rotateSpeed = 1.0;
-				ctrl.zoomSpeed = 1.2;
-				ctrl.panSpeed = 0.8;
-				ctrl.noZoom = false;
-				ctrl.noPan = false;
-				ctrl.staticMoving = false;
-				ctrl.dynamicDampingFactor = 0.3;
-			},
-
-			initScene : function(width, height){
-				camera = new THREE.PerspectiveCamera( 20, width / height, 10, 1000 );
-				camera.position.set(0, 0, 300);
-
-				var ambient = new THREE.AmbientLight(0x202020);
-
-				var light = new THREE.DirectionalLight( 0xe0e0e0, 1 );
-					light.position = camera.position;
-				
-				camera.add( light );
-
-				canvasPlane.up = camera.up;
-
-				scene = new THREE.Scene();
-				scene.add(camera);
-				scene.add(ambient);
-				scene.add(canvasPlane);
-			},
-
-			render : function(){
-				canvasPlane.lookAt(camera.position);
-				rndr.render(scene, camera);
-			},
-
-			animate : function(){
-				var that = this;
-				requestAnimationFrame(function(){
-					that.animate();
-					ctrl.update();
-					that.render();
-				});
-			},
-
-			init : function(canvasElement, raycast){
-				var width = parseInt(canvasElement.style.width, 10),
-					height = parseInt(canvasElement.style.height, 10);
-
-				raycastHandler = raycast;
-
-				this.initScene(width, height);
-				this.initRenderer(canvasElement, width, height);
-				this.initControl(canvasElement);
-				this.initRaycaster();
-
-				canvasElement.addEventListener( 'mousedown', onMouseDown, false );
-				canvasElement.addEventListener( 'mousemove', onMouseMove, false );
-				canvasElement.addEventListener( 'mouseup', onMouseUp, false );
-
-				this.render();
-				this.animate();
-			}
-		}
-	})();
-
-/***/ },
-/* 3 */
+/* 2 */,
+/* 3 */,
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -36021,7 +35869,7 @@
 
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
@@ -36029,21 +35877,175 @@
 	var pointMaterial = new THREE.PointCloudMaterial({
 		size : 20,
 		color : 0xef049d
-	})
+	});
 
 	module.exports = (function(){
-		return {
-			move : function(event, ctrl, intersections){
-				// do nothing yet
-			},
-			down : function(event, ctrl, intersections){
-				if (event.shiftKey){
-					ctrl.enabled = false;
-					console.log("yay");
+
+		// For capturing the mouse coord over the screen
+		// and unproject to 3D model.
+		var	raycaster = new THREE.Raycaster(),
+			mouse = new THREE.Vector2();
+		
+		var rndr, ctrl, scene, camera, canvasElement;
+
+		var intersect = function(event){
+			mouse.x = ( 2*event.clientX / rndr.domElement.width ) * 2 - 1;
+			mouse.y = - ( 2*event.clientY / rndr.domElement.height ) * 2 + 1;
+			raycaster.setFromCamera( mouse, camera );
+			return raycaster.intersectObjects(scene.children);
+		}
+
+		var mouseDown = function(event){
+			
+		};
+
+		var mouseMove = function(event){
+
+		};
+
+		var mouseUp = function(event){
+
+		};
+
+		var parseCommand = function (event){
+			if (event.which === 13){
+				var command = $(this).val().split(',');
+				if(command[0] === "path"){
+					
 				}
+			}
+
+		};
+
+		return {
+			init : function(threeView){
+				rndr = threeView.rndr;
+				ctrl = threeView.ctrl;
+				scene = threeView.scene;
+				camera = threeView.camera;
+				canvasElement = threeView.canvasElement;
+
+				canvasElement.addEventListener( 'mousedown', mouseDown, false );
+				canvasElement.addEventListener( 'mousemove', mouseMove, false );
+				canvasElement.addEventListener( 'mouseup', mouseUp, false );
+				$('#command-line').on('keydown', parseCommand);
+			}
+		}
+	})();
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+	var Trackball = __webpack_require__(4);
+
+	module.exports = (function(){
+		$('#viewport').height(window.innerHeight).width(window.innerWidth);
+		$('#command-line').focus();
+
+		// Fundamental objects of a three.js view
+		var ctrl, rndr, scene, camera;
+
+		// Moving canvas (a plane always facing to camera)
+		var canvasPlane = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(180, 90),
+			new THREE.MeshBasicMaterial(
+				{
+					color : 0x7F7F7F,
+					transparent : true,
+					opacity : 0.2
+				}
+			));
+			canvasPlane.name = "canvas-plane";
+
+		return {
+
+			add : function(graphic, name){
+				graphic.name = name;
+				scene.add(graphic)
 			},
-			up : function(event, ctrl, intersections){
-				ctrl.enabled = true;
+
+			remove : function(graphic){
+				scene.remove(graphic)
+			},
+
+			initRenderer : function(canvasElement, width, height){
+				rndr = new THREE.WebGLRenderer({
+					alpha:true,
+					antialias: true
+				});
+
+				canvasElement.appendChild( rndr.domElement );
+
+				rndr.setPixelRatio(window.devicePixelRatio);
+				rndr.setSize(width, height);
+				rndr.setClearColor( 0xfafafa, 1);
+			},
+
+			initControl : function(canvasElement){
+				ctrl = new Trackball(camera, canvasElement);
+				ctrl.rotateSpeed = 1.0;
+				ctrl.zoomSpeed = 1.2;
+				ctrl.panSpeed = 0.8;
+				ctrl.noZoom = false;
+				ctrl.noPan = false;
+				ctrl.staticMoving = false;
+				ctrl.dynamicDampingFactor = 0.3;
+			},
+
+			initScene : function(width, height){
+				camera = new THREE.PerspectiveCamera( 20, width / height, 10, 1000 );
+				camera.position.set(0, 0, 300);
+
+				var ambient = new THREE.AmbientLight(0x202020);
+
+				var light = new THREE.DirectionalLight( 0xe0e0e0, 1 );
+					light.position = camera.position;
+				
+				camera.add( light );
+
+				canvasPlane.up = camera.up;
+
+				scene = new THREE.Scene();
+				scene.add(camera);
+				scene.add(ambient);
+				scene.add(canvasPlane);
+			},
+
+			render : function(){
+				canvasPlane.lookAt(camera.position);
+				rndr.render(scene, camera);
+			},
+
+			animate : function(){
+				var that = this;
+				requestAnimationFrame(function(){
+					that.animate();
+					ctrl.update();
+					that.render();
+				});
+			},
+
+			init : function(canvasElement, raycast){
+				var width = parseInt(canvasElement.style.width, 10),
+					height = parseInt(canvasElement.style.height, 10);
+
+
+				this.initScene(width, height);
+				this.initRenderer(canvasElement, width, height);
+				this.initControl(canvasElement);
+
+				this.rndr = rndr;
+				this.camera = camera;
+				this.scene = scene;
+				this.ctrl = ctrl;
+				this.canvasElement = canvasElement;
+
+				console.log(rndr);
+
+				this.render();
+				this.animate();
 			}
 		}
 	})();

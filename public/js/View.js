@@ -2,19 +2,11 @@ var THREE = require('three');
 var Trackball = require('three.trackball');
 
 module.exports = (function(){
+	$('#viewport').height(window.innerHeight).width(window.innerWidth);
+	$('#command-line').focus();
 
 	// Fundamental objects of a three.js view
 	var ctrl, rndr, scene, camera;
-
-	// For capturing the mouse coord over the screen
-	// and unproject to 3D model.
-	var raycaster, mouse;
-
-	// mouseHandler should provide the method that handle
-	// mouseDown and mouseMove events. ThreeViewports
-	// passes the result of raycasting into those methods,
-	// for further processing.
-	var raycastHandler;
 
 	// Moving canvas (a plane always facing to camera)
 	var canvasPlane = new THREE.Mesh(
@@ -28,45 +20,15 @@ module.exports = (function(){
 		));
 		canvasPlane.name = "canvas-plane";
 
-	var getIntersections = function(){
-		mouse.x = ( 2*event.clientX / rndr.domElement.width ) * 2 - 1;
-		mouse.y = - ( 2*event.clientY / rndr.domElement.height ) * 2 + 1;
-		raycaster.setFromCamera( mouse, camera );
-		return raycaster.intersectObjects(scene.children);
-	}
-
-	var onMouseMove = function( event ) {
-		event.preventDefault();
-		raycastHandler.move(event, ctrl, getIntersections());
-	};
-
-	var onMouseDown = function( event ) {
-		event.preventDefault();
-		raycastHandler.down(event, ctrl, getIntersections());
-	};
-
-	var onMouseUp = function(event){
-		event.preventDefault();
-		raycastHandler.up(event, ctrl, getIntersections());
-	}
-
 	return {
 
-		add : function(graphic){
+		add : function(graphic, name){
+			graphic.name = name;
 			scene.add(graphic)
 		},
 
 		remove : function(graphic){
 			scene.remove(graphic)
-		},
-
-		getCtrl : function(){
-			return ctrl;
-		},
-
-		initRaycaster : function(){
-			raycaster = new THREE.Raycaster();
-			mouse = new THREE.Vector2();
 		},
 
 		initRenderer : function(canvasElement, width, height){
@@ -130,16 +92,18 @@ module.exports = (function(){
 			var width = parseInt(canvasElement.style.width, 10),
 				height = parseInt(canvasElement.style.height, 10);
 
-			raycastHandler = raycast;
 
 			this.initScene(width, height);
 			this.initRenderer(canvasElement, width, height);
 			this.initControl(canvasElement);
-			this.initRaycaster();
 
-			canvasElement.addEventListener( 'mousedown', onMouseDown, false );
-			canvasElement.addEventListener( 'mousemove', onMouseMove, false );
-			canvasElement.addEventListener( 'mouseup', onMouseUp, false );
+			this.rndr = rndr;
+			this.camera = camera;
+			this.scene = scene;
+			this.ctrl = ctrl;
+			this.canvasElement = canvasElement;
+
+			console.log(rndr);
 
 			this.render();
 			this.animate();

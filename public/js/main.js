@@ -1,6 +1,6 @@
 var THREE = require('three');
-var ThreeViewport = require('./ThreeViewport.js');
-var RaycastHandler = require('./RaycastHandler.js');
+var View = require('./View.js');
+var Control = require('./Control.js');
 
 var line1 = new THREE.LineBasicMaterial({
 		opacity : 0.7,
@@ -34,14 +34,13 @@ var ring1 = new THREE.Line(centerGeom(), line1),
 
 
 window.onload = function() {
-	$('#viewport').height(window.innerHeight).width(window.innerWidth);
-	$('#command-line').focus();
-	ThreeViewport.init($('#viewport').get(0), RaycastHandler);
+	View.init($('#viewport').get(0));
+	Control.init(View);
 
 	ring2.rotation.x = Math.PI / 2;
 	ring3.rotation.y = Math.PI / 2;
 
-	ThreeViewport.add(ring1);
-	ThreeViewport.add(ring2);
-	ThreeViewport.add(ring3);
+	View.add(ring1);
+	View.add(ring2);
+	View.add(ring3);
 }
