@@ -45,11 +45,11 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
-	var View = __webpack_require__(2);
-	var Control = __webpack_require__(4);
-	var Curve = __webpack_require__(5);
+	var View = __webpack_require__(5);
+	var Control = __webpack_require__(6);
+	var Curve = __webpack_require__(7);
 
-	var Waypoint = __webpack_require__(6);
+	var Waypoint = __webpack_require__(8);
 
 	var line1 = new THREE.LineBasicMaterial({
 			opacity : 0.7,
@@ -35262,123 +35262,7 @@
 
 
 /***/ },
-/* 2 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(1);
-	var Trackball = __webpack_require__(3);
-
-	// var bezierMaterial = 
-
-	module.exports = (function(){
-		$('#viewport').height(window.innerHeight).width(window.innerWidth);
-		$('#command-line').focus();
-
-		// Fundamental objects of a three.js view
-		var ctrl, rndr, scene, camera;
-
-		// Moving canvas (a plane always facing to camera)
-		var canvasPlane = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(180, 90),
-			new THREE.MeshBasicMaterial(
-				{
-					color : 0x7F7F7F,
-					transparent : true,
-					opacity : 0.2
-				}
-			));
-			canvasPlane.name = "canvas-plane";
-
-		return {
-
-			add : function(graphic, name){
-				graphic.name = name;
-				scene.add(graphic)
-			},
-
-			remove : function(graphic){
-				scene.remove(graphic)
-			},
-
-			initRenderer : function(canvasElement, width, height){
-				rndr = new THREE.WebGLRenderer({
-					alpha:true,
-					antialias: true
-				});
-
-				canvasElement.appendChild( rndr.domElement );
-
-				rndr.setPixelRatio(window.devicePixelRatio);
-				rndr.setSize(width, height);
-				rndr.setClearColor( 0xfafafa, 1);
-			},
-
-			initControl : function(canvasElement){
-				ctrl = new Trackball(camera, canvasElement);
-				ctrl.rotateSpeed = 1.0;
-				ctrl.zoomSpeed = 1.2;
-				ctrl.panSpeed = 0.8;
-				ctrl.noZoom = false;
-				ctrl.noPan = false;
-				ctrl.staticMoving = false;
-				ctrl.dynamicDampingFactor = 0.3;
-			},
-
-			initScene : function(width, height){
-				camera = new THREE.PerspectiveCamera( 20, width / height, 10, 1000 );
-				camera.position.set(0, 0, 300);
-
-				var ambient = new THREE.AmbientLight(0x202020);
-
-				var light = new THREE.DirectionalLight( 0xe0e0e0, 1 );
-					light.position = camera.position;
-				
-				camera.add( light );
-
-				canvasPlane.up = camera.up;
-
-				scene = new THREE.Scene();
-				scene.add(camera);
-				scene.add(ambient);
-				scene.add(canvasPlane);
-			},
-
-			render : function(){
-				canvasPlane.lookAt(camera.position);
-				rndr.render(scene, camera);
-			},
-
-			animate : function(){
-				var that = this;
-				requestAnimationFrame(function(){
-					that.animate();
-					ctrl.update();
-					that.render();
-				});
-			},
-
-			init : function(canvasElement, raycast){
-				var width = parseInt(canvasElement.style.width, 10),
-					height = parseInt(canvasElement.style.height, 10);
-
-
-				this.initScene(width, height);
-				this.initRenderer(canvasElement, width, height);
-				this.initControl(canvasElement);
-
-				this.rndr = rndr;
-				this.camera = camera;
-				this.scene = scene;
-				this.ctrl = ctrl;
-				this.canvasElement = canvasElement;
-
-				this.render();
-				this.animate();
-			}
-		}
-	})();
-
-/***/ },
+/* 2 */,
 /* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -36002,12 +35886,131 @@
 
 
 /***/ },
-/* 4 */
+/* 4 */,
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+	var Trackball = __webpack_require__(3);
+
+	// var bezierMaterial = 
+
+	module.exports = (function(){
+		$('#viewport').height(window.innerHeight).width(window.innerWidth);
+		$('#command-line').focus();
+
+		// Fundamental objects of a three.js view
+		var ctrl, rndr, scene, camera;
+
+		// Moving canvas (a plane always facing to camera)
+		var canvasPlane = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(180, 90),
+			new THREE.MeshBasicMaterial(
+				{
+					side : THREE.DoubleSide,
+					color : 0x7F7F7F,
+					transparent : true,
+					opacity : 0.2
+				}
+			));
+			canvasPlane.name = "canvas-plane";
+
+		return {
+
+			add : function(graphic, name){
+				graphic.name = name;
+				scene.add(graphic)
+			},
+
+			remove : function(graphic){
+				scene.remove(graphic)
+			},
+
+			initRenderer : function(canvasElement, width, height){
+				rndr = new THREE.WebGLRenderer({
+					alpha:true,
+					antialias: true
+				});
+
+				canvasElement.appendChild( rndr.domElement );
+
+				rndr.setPixelRatio(window.devicePixelRatio);
+				rndr.setSize(width, height);
+				rndr.setClearColor( 0xfafafa, 1);
+			},
+
+			initControl : function(canvasElement){
+				ctrl = new Trackball(camera, canvasElement);
+				ctrl.rotateSpeed = 1.0;
+				ctrl.zoomSpeed = 1.2;
+				ctrl.panSpeed = 0.8;
+				ctrl.noZoom = false;
+				ctrl.noPan = false;
+				ctrl.staticMoving = false;
+				ctrl.dynamicDampingFactor = 0.3;
+			},
+
+			initScene : function(width, height){
+				camera = new THREE.PerspectiveCamera( 20, width / height, 10, 1000 );
+				camera.position.set(0, 0, 300);
+
+				var ambient = new THREE.AmbientLight(0x202020);
+
+				var light = new THREE.DirectionalLight( 0xe0e0e0, 1 );
+					light.position = camera.position;
+				
+				camera.add( light );
+
+				canvasPlane.up = camera.up;
+
+				scene = new THREE.Scene();
+				scene.add(camera);
+				scene.add(ambient);
+				scene.add(canvasPlane);
+			},
+
+			render : function(){
+				canvasPlane.lookAt(camera.position);
+				rndr.render(scene, camera);
+			},
+
+			animate : function(){
+				var that = this;
+				requestAnimationFrame(function(){
+					that.animate();
+					ctrl.update();
+					that.render();
+				});
+			},
+
+			init : function(canvasElement, raycast){
+				var width = parseInt(canvasElement.style.width, 10),
+					height = parseInt(canvasElement.style.height, 10);
+
+
+				this.initScene(width, height);
+				this.initRenderer(canvasElement, width, height);
+				this.initControl(canvasElement);
+
+				this.rndr = rndr;
+				this.camera = camera;
+				this.scene = scene;
+				this.ctrl = ctrl;
+				this.canvasElement = canvasElement;
+
+				this.render();
+				this.animate();
+			}
+		}
+	})();
+
+/***/ },
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
 
-	var Curve = __webpack_require__(5);
+	var Curve = __webpack_require__(7);
 
 	module.exports = (function(){
 
@@ -36066,13 +36069,14 @@
 	})();
 
 /***/ },
-/* 5 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
 
 	var pointMaterial = new THREE.PointCloudMaterial({
-		transparent : true,
+		side : THREE.DoubleSide,
+		// transparent : true,
 		opacity : 0.5,
 		color : 0xE11C51,
 		size : 3
@@ -36084,8 +36088,8 @@
 		 * that only Vector3 reference is passed in.
 		 * @type {Array}
 		 */
-		this.points = [];
-		this.points.push(vec0, vec1, vec2, vec3);
+		var points = [];
+			points.push(vec0, vec1, vec2, vec3);
 
 		var resolution = Math.floor(points[0].distanceTo(points[1]) + points[1].distanceTo(points[2]) + points[2].distanceTo(points[3]));
 
@@ -36109,8 +36113,8 @@
 		var ctrl2 = new THREE.Line(new THREE.Geometry());
 			ctrl2.geometry.verticesNeedUpdate = true;
 
-		this.curve = new THREE.Object3D();
-		this.curve.add(handles, curveBody, ctrl1, ctrl2);
+		var curve = new THREE.Object3D();
+			curve.add(handles, curveBody, ctrl1, ctrl2);
 
 		var setPoints = function(){
 			ctrl1.geometry.vertices[0] = points[1];
@@ -36171,9 +36175,9 @@
 			
 			edit : function(which, vec){
 				if(which === 0){
-					points[1] = vec;
+					points[1] = points[0].add(vec);
 				} else {
-					points[2] = vec;
+					points[2] = points[3].add(vec);
 				}
 				
 				setPoints();
@@ -36183,7 +36187,7 @@
 	}
 
 /***/ },
-/* 6 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);

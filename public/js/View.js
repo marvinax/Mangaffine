@@ -15,6 +15,7 @@ module.exports = (function(){
 		new THREE.PlaneBufferGeometry(180, 90),
 		new THREE.MeshBasicMaterial(
 			{
+				side : THREE.DoubleSide,
 				color : 0x7F7F7F,
 				transparent : true,
 				opacity : 0.2

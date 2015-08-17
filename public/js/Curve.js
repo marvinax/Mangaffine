@@ -1,7 +1,8 @@
 var THREE = require('three');
 
 var pointMaterial = new THREE.PointCloudMaterial({
-	transparent : true,
+	side : THREE.DoubleSide,
+	// transparent : true,
 	opacity : 0.5,
 	color : 0xE11C51,
 	size : 3
@@ -13,8 +14,8 @@ module.exports = function(vec0, vec1, vec2, vec3){
 	 * that only Vector3 reference is passed in.
 	 * @type {Array}
 	 */
-	this.points = [];
-	this.points.push(vec0, vec1, vec2, vec3);
+	var points = [];
+		points.push(vec0, vec1, vec2, vec3);
 
 	var resolution = Math.floor(points[0].distanceTo(points[1]) + points[1].distanceTo(points[2]) + points[2].distanceTo(points[3]));
 
@@ -38,8 +39,8 @@ module.exports = function(vec0, vec1, vec2, vec3){
 	var ctrl2 = new THREE.Line(new THREE.Geometry());
 		ctrl2.geometry.verticesNeedUpdate = true;
 
-	this.curve = new THREE.Object3D();
-	this.curve.add(handles, curveBody, ctrl1, ctrl2);
+	var curve = new THREE.Object3D();
+		curve.add(handles, curveBody, ctrl1, ctrl2);
 
 	var setPoints = function(){
 		ctrl1.geometry.vertices[0] = points[1];
@@ -100,9 +101,9 @@ module.exports = function(vec0, vec1, vec2, vec3){
 		
 		edit : function(which, vec){
 			if(which === 0){
-				points[1] = vec;
+				points[1] = points[0].add(vec);
 			} else {
-				points[2] = vec;
+				points[2] = points[3].add(vec);
 			}
 			
 			setPoints();
