@@ -1,9 +1,6 @@
 var THREE = require('three');
 
-var pointMaterial = new THREE.PointCloudMaterial({
-	size : 20,
-	color : 0xef049d
-});
+var Curve = require('./Curve.js');
 
 module.exports = (function(){
 
@@ -37,7 +34,9 @@ module.exports = (function(){
 		if (event.which === 13){
 			var command = $(this).val().split(',');
 			if(command[0] === "path"){
-				
+				// Need to figure out how to stored as command history
+				// in order to implement undo/redo
+				console.log('a');
 			}
 		}
 

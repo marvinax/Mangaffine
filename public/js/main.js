@@ -1,6 +1,9 @@
 var THREE = require('three');
 var View = require('./View.js');
 var Control = require('./Control.js');
+var Curve = require('./Curve.js');
+
+var Waypoint = require('./Waypoint.js');
 
 var line1 = new THREE.LineBasicMaterial({
 		opacity : 0.7,
@@ -40,7 +43,19 @@ window.onload = function() {
 	ring2.rotation.x = Math.PI / 2;
 	ring3.rotation.y = Math.PI / 2;
 
-	View.add(ring1);
-	View.add(ring2);
-	View.add(ring3);
+	View.add(ring1, "x-ring");
+	View.add(ring2, "y-ring");
+	View.add(ring3, "z-ring");
+
+	var curve = Curve();
+	curve.init(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 0, 0), new THREE.Vector3(10, 10, 0), new THREE.Vector3(0, 10, 0), 15);
+
+	View.add(curve.curve, "curve");
+
+
+	var vertex = new THREE.Vector3(1, 2, 3),
+		wp = Waypoint(vertex);
+
+	wp.translate(new THREE.Vector3(1,2,3));
+	console.log(vertex);
 }

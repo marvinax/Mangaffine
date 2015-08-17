@@ -1,6 +1,8 @@
 var THREE = require('three');
 var Trackball = require('three.trackball');
 
+// var bezierMaterial = 
+
 module.exports = (function(){
 	$('#viewport').height(window.innerHeight).width(window.innerWidth);
 	$('#command-line').focus();
@@ -102,8 +104,6 @@ module.exports = (function(){
 			this.scene = scene;
 			this.ctrl = ctrl;
 			this.canvasElement = canvasElement;
-
-			console.log(rndr);
 
 			this.render();
 			this.animate();

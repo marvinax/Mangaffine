@@ -9,7 +9,9 @@ module.exports = {
     },
     module: {
         loaders: [
-            { test: /\.css$/, loader: "style!css" }
+            { test: /\.css$/, loader: "style!css" },
+            { test: /\.(glsl|frag|vert)$/, loader: 'raw', exclude: /node_modules/ },
+            { test: /\.(glsl|frag|vert)$/, loader: 'glslify', exclude: /node_modules/ }
         ]
     }
 };
