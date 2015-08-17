@@ -1,17 +1,22 @@
 var THREE = require('three');
 
 module.exports = function(vec){
-	point = vec;
-	controls = [vec.clone(), vec.clone()];
+	var point = vec;
+	var controls = [vec.clone(), vec.clone()];
 
 	return {
-		translate : function(vector){
+		init : function(){
+			this.point = point;
+			this.controls = controls;
+		},
+
+		move : function(vector){
 			point.add(vector);
 			controls[0].add(vector);
 			controls[1].add(vector);
 		},
 
-		setControl : function(freeform, which, vector){
+		edit : function(freeform, which, vector){
 			var distance = new THREE.Vector3();
 			controls[which].set(vector);
 			if(!freeform){

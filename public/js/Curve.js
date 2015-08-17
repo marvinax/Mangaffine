@@ -7,40 +7,51 @@ var pointMaterial = new THREE.PointCloudMaterial({
 	size : 3
 });
 
-module.exports = function(){
+module.exports = function(vec0, vec1, vec2, vec3){
+	/**
+	 * Points array is used to generate the Bezier curve. Make sure
+	 * that only Vector3 reference is passed in.
+	 * @type {Array}
+	 */
+	this.points = [];
+	this.points.push(vec0, vec1, vec2, vec3);
 
-	var points = [];
-	for (var i = 0; i < 4; i++){
-		points.push(new THREE.Vector3());
-	}
+	var resolution = Math.floor(points[0].distanceTo(points[1]) + points[1].distanceTo(points[2]) + points[2].distanceTo(points[3]));
+
+	var vertices = [];
+	for (var i = 0 ; i < resolution; i++) {
+		vertices[i] = new THREE.Vector3();
+	};
+
 
 	var handles = new THREE.PointCloud(new THREE.Geometry(), pointMaterial);
 		handles.geometry.vertices = points;
 		handles.geometry.verticesNeedUpdate = true;
 
-	var resolution = 15,
-		vertices = [];
-	for (var i = 0; i < resolution; i++){
-		vertices.push(new THREE.Vector3());
-	}
-
 	var curveBody = new THREE.Line(new THREE.Geometry());
 		curveBody.geometry.vertices = vertices;
 		curveBody.geometry.verticesNeedUpdate = true;
 
-	var controlLine1 = new THREE.Line(new THREE.Geometry());
-		controlLine1.geometry.verticesNeedUpdate = true;
+	var ctrl1 = new THREE.Line(new THREE.Geometry());
+		ctrl1.geometry.verticesNeedUpdate = true;
 
-	var controlLine2 = new THREE.Line(new THREE.Geometry());
-		controlLine2.geometry.verticesNeedUpdate = true;
+	var ctrl2 = new THREE.Line(new THREE.Geometry());
+		ctrl2.geometry.verticesNeedUpdate = true;
 
-	var curve = new THREE.Object3D();
-		curve.add(handles, curveBody, controlLine1, controlLine2);
+	this.curve = new THREE.Object3D();
+	this.curve.add(handles, curveBody, ctrl1, ctrl2);
 
-	var setPoints = function(p){
-		controlLine1.geometry.vertices.push(points[1], points[0]);
-		controlLine2.geometry.vertices.push(points[2], points[3]);
+	var setPoints = function(){
+		ctrl1.geometry.vertices[0] = points[1];
+		ctrl1.geometry.vertices[1] = points[0];
+
+		ctrl2.geometry.vertices[0] = points[2];
+		ctrl2.geometry.vertices[1] = points[3];
+
+		ctrl1.geometry.verticesNeedUpdate = true;
+		ctrl2.geometry.verticesNeedUpdate = true;
 	}
+	setPoints();
 
 	var setVertices = function(p, v){
 		for (var i = resolution - 1; i >= 0; i--) {
@@ -59,26 +70,43 @@ module.exports = function(){
 
 		curveBody.geometry.verticesNeedUpdate = true;
 	}
+	setVertices(points, vertices);
 
 	return {
-		init : function(v0, c0, c1, v1){
-			points[0] = v0;
-			points[1] = c0;
-			points[2] = c1;
-			points[3] = v1;
-			
-			setPoints(points);
-
-			resolution = Math.floor(v0.distanceTo(c0) + c0.distanceTo(c1) + c1.distanceTo(v1));
-
-			for (var i = 0 ; i < resolution; i++) {
-				vertices[i] = new THREE.Vector3();
-			};
-
-			setVertices(points, vertices);
+		init : function(){
 			this.points = points;
-			this.handles = handles;
 			this.curve = curve;
+		},
+
+		move : function(which, vec){
+			if(which === 0){
+				points[0].add(vec);
+				points[1].add(vec);
+			} else {
+				points[3].add(vec);
+				points[2].add(vec);
+			}
+
+			setPoints();
+			setVertices(points, vertices);
+		},
+
+		// Please be advised that this is not quite an intuitive operation
+		// in practice. edit the curve handler by setting a absolute 
+		// coordinate would be not easy to use. A better way would be 
+		// decompose the operation into changing the length/angle incrementally
+		// (however this is still not easy to use.) Preferrably to figure
+		// out a heuristic approach.
+		
+		edit : function(which, vec){
+			if(which === 0){
+				points[1] = vec;
+			} else {
+				points[2] = vec;
+			}
+			
+			setPoints();
+			setVertices(points, vertices);
 		},
 	}
 }

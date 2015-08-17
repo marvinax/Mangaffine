@@ -10,24 +10,36 @@ module.exports = function(){
 	var curves = [];
 
 	/**
-	 * waypoints are generated from commandlines
-	 * @type {Array}
+	 * holds all curve objects. Should be exposed to outside.
+	 * @type {THREE}
 	 */
-	var waypoints = [];
-
-	var editingMode = "";
+	var path = new THREE.Object3D();
 
 	return {
-		init : function(vecArray){
-			if(vecArray.length > 1){			
-				vecArray.forEach(e){
-					waypoints.push(new WayPoint(e));
-				}
+		add : function(vec){
+			if(curves.length > 1){
+				var last = curves.length - 1,
+					lastPoint = curves[last];
 
-				for(var i = 0; i < waypoints.length - 1; i++){
-					curves.push()
-				}
+				curves.push(Curve(lastPoint.clone(), vec.clone(), , waypoints[last].point));
+				curves[last-1].init();
+				path.add(curves.curve)
+			} else {
+				curves.push(Curve(vec.clone(), vec.clone(), vec.clone(), vec.clone()));
+				curves[0].init();
 			}
+		},
+
+		move : function(which, vector){
+			waypoints[which].move(vector);
+
+			if(which > 0)
+				curves[which-1].move(vector);
+
+			if(which < waypoints.length - 2)
+				curves[which].move(vector);
+
 		}
+
 	}
 }
