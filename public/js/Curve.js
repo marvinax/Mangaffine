@@ -1,4 +1,5 @@
 var THREE = require('three');
+var AdaptiveBezier = require('./AdaptiveBezier.js');
 
 var pointMaterial = new THREE.PointCloudMaterial({
 	side : THREE.DoubleSide,
@@ -17,20 +18,11 @@ module.exports = function(vec0, vec1, vec2, vec3){
 	var points = [];
 		points.push(vec0, vec1, vec2, vec3);
 
-	var resolution = Math.floor(points[0].distanceTo(points[1]) + points[1].distanceTo(points[2]) + points[2].distanceTo(points[3]));
-
-	var vertices = [];
-	for (var i = 0 ; i < resolution; i++) {
-		vertices[i] = new THREE.Vector3();
-	};
-
-
 	var handles = new THREE.PointCloud(new THREE.Geometry(), pointMaterial);
 		handles.geometry.vertices = points;
 		handles.geometry.verticesNeedUpdate = true;
 
-	var curveBody = new THREE.Line(new THREE.Geometry());
-		curveBody.geometry.vertices = vertices;
+	var curveBody = new THREE.PointCloud(new THREE.Geometry());
 		curveBody.geometry.verticesNeedUpdate = true;
 
 	var ctrl1 = new THREE.Line(new THREE.Geometry());
@@ -54,24 +46,11 @@ module.exports = function(vec0, vec1, vec2, vec3){
 	}
 	setPoints();
 
-	var setVertices = function(p, v){
-		for (var i = resolution - 1; i >= 0; i--) {
-			var t = i / (resolution - 1);
-			var tsq = t*t,
-				tcb = tsq*t,
-				t_sq = (1-t)*(1-t),
-				t_cb = t_sq*(1-t);
-
-			vertices[i].set(
-				p[0].x * tcb + 3*p[1].x * tsq * (1-t) + 3*p[2].x * t_sq* t + p[3].x * t_cb,
-				p[0].y * tcb + 3*p[1].y * tsq * (1-t) + 3*p[2].y * t_sq* t + p[3].y * t_cb,
-				p[0].z * tcb + 3*p[1].z * tsq * (1-t) + 3*p[2].z * t_sq* t + p[3].z * t_cb
-			);
-		};
-
+	var setVertices = function(p){
+		curveBody.geometry.vertices = AdaptiveBezier.bezierCurve(p[0], p[1], p[2], p[3]);
 		curveBody.geometry.verticesNeedUpdate = true;
 	}
-	setVertices(points, vertices);
+	setVertices(points);
 
 	return {
 		init : function(){
@@ -89,7 +68,7 @@ module.exports = function(vec0, vec1, vec2, vec3){
 			}
 
 			setPoints();
-			setVertices(points, vertices);
+			setVertices(points);
 		},
 
 		// Please be advised that this is not quite an intuitive operation
@@ -107,7 +86,7 @@ module.exports = function(vec0, vec1, vec2, vec3){
 			}
 			
 			setPoints();
-			setVertices(points, vertices);
+			setVertices(points);
 		},
 	}
 }

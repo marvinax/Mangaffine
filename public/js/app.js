@@ -45,11 +45,11 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
-	var View = __webpack_require__(5);
-	var Control = __webpack_require__(6);
-	var Curve = __webpack_require__(7);
+	var View = __webpack_require__(2);
+	var Control = __webpack_require__(4);
+	var Curve = __webpack_require__(5);
 
-	var Waypoint = __webpack_require__(8);
+	var Waypoint = __webpack_require__(6);
 
 	var line1 = new THREE.LineBasicMaterial({
 			opacity : 0.7,
@@ -94,19 +94,8 @@
 		View.add(ring3, "z-ring");
 
 		var curve = Curve(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 0, 0), new THREE.Vector3(10, 10, 0), new THREE.Vector3(0, 10, 0));
-		console.log(curve);
 		curve.init();
 		View.add(curve.curve, "curve");
-
-		var curve = Curve(new THREE.Vector3(0, 0, 10), new THREE.Vector3(10, 0, 0), new THREE.Vector3(10, 10, 0), new THREE.Vector3(0, 10, 0));
-		curve.init();
-		View.add(curve.curve, "curve2");
-
-
-		var vertex = new THREE.Vector3(1, 2, 3),
-			wp = Waypoint(vertex);
-		wp.translate(new THREE.Vector3(1,2,3));
-
 	}
 
 /***/ },
@@ -35262,7 +35251,124 @@
 
 
 /***/ },
-/* 2 */,
+/* 2 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+	var Trackball = __webpack_require__(3);
+
+	// var bezierMaterial = 
+
+	module.exports = (function(){
+		$('#viewport').height(window.innerHeight).width(window.innerWidth);
+		$('#command-line').focus();
+
+		// Fundamental objects of a three.js view
+		var ctrl, rndr, scene, camera;
+
+		// Moving canvas (a plane always facing to camera)
+		var canvasPlane = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(180, 90),
+			new THREE.MeshBasicMaterial(
+				{
+					side : THREE.DoubleSide,
+					color : 0x7F7F7F,
+					transparent : true,
+					opacity : 0.2
+				}
+			));
+			canvasPlane.name = "canvas-plane";
+
+		return {
+
+			add : function(graphic, name){
+				graphic.name = name;
+				scene.add(graphic)
+			},
+
+			remove : function(graphic){
+				scene.remove(graphic)
+			},
+
+			initRenderer : function(canvasElement, width, height){
+				rndr = new THREE.WebGLRenderer({
+					alpha:true,
+					antialias: true
+				});
+
+				canvasElement.appendChild( rndr.domElement );
+
+				rndr.setPixelRatio(window.devicePixelRatio);
+				rndr.setSize(width, height);
+				rndr.setClearColor( 0xfafafa, 1);
+			},
+
+			initControl : function(canvasElement){
+				ctrl = new Trackball(camera, canvasElement);
+				ctrl.rotateSpeed = 1.0;
+				ctrl.zoomSpeed = 1.2;
+				ctrl.panSpeed = 0.8;
+				ctrl.noZoom = false;
+				ctrl.noPan = false;
+				ctrl.staticMoving = false;
+				ctrl.dynamicDampingFactor = 0.3;
+			},
+
+			initScene : function(width, height){
+				camera = new THREE.PerspectiveCamera( 20, width / height, 10, 1000 );
+				camera.position.set(0, 0, 300);
+
+				var ambient = new THREE.AmbientLight(0x202020);
+
+				var light = new THREE.DirectionalLight( 0xe0e0e0, 1 );
+					light.position = camera.position;
+				
+				camera.add( light );
+
+				canvasPlane.up = camera.up;
+
+				scene = new THREE.Scene();
+				scene.add(camera);
+				scene.add(ambient);
+				scene.add(canvasPlane);
+			},
+
+			render : function(){
+				canvasPlane.lookAt(camera.position);
+				rndr.render(scene, camera);
+			},
+
+			animate : function(){
+				var that = this;
+				requestAnimationFrame(function(){
+					that.animate();
+					ctrl.update();
+					that.render();
+				});
+			},
+
+			init : function(canvasElement, raycast){
+				var width = parseInt(canvasElement.style.width, 10),
+					height = parseInt(canvasElement.style.height, 10);
+
+
+				this.initScene(width, height);
+				this.initRenderer(canvasElement, width, height);
+				this.initControl(canvasElement);
+
+				this.rndr = rndr;
+				this.camera = camera;
+				this.scene = scene;
+				this.ctrl = ctrl;
+				this.canvasElement = canvasElement;
+
+				this.render();
+				this.animate();
+			}
+		}
+	})();
+
+/***/ },
 /* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -35886,131 +35992,12 @@
 
 
 /***/ },
-/* 4 */,
-/* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(1);
-	var Trackball = __webpack_require__(3);
-
-	// var bezierMaterial = 
-
-	module.exports = (function(){
-		$('#viewport').height(window.innerHeight).width(window.innerWidth);
-		$('#command-line').focus();
-
-		// Fundamental objects of a three.js view
-		var ctrl, rndr, scene, camera;
-
-		// Moving canvas (a plane always facing to camera)
-		var canvasPlane = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(180, 90),
-			new THREE.MeshBasicMaterial(
-				{
-					side : THREE.DoubleSide,
-					color : 0x7F7F7F,
-					transparent : true,
-					opacity : 0.2
-				}
-			));
-			canvasPlane.name = "canvas-plane";
-
-		return {
-
-			add : function(graphic, name){
-				graphic.name = name;
-				scene.add(graphic)
-			},
-
-			remove : function(graphic){
-				scene.remove(graphic)
-			},
-
-			initRenderer : function(canvasElement, width, height){
-				rndr = new THREE.WebGLRenderer({
-					alpha:true,
-					antialias: true
-				});
-
-				canvasElement.appendChild( rndr.domElement );
-
-				rndr.setPixelRatio(window.devicePixelRatio);
-				rndr.setSize(width, height);
-				rndr.setClearColor( 0xfafafa, 1);
-			},
-
-			initControl : function(canvasElement){
-				ctrl = new Trackball(camera, canvasElement);
-				ctrl.rotateSpeed = 1.0;
-				ctrl.zoomSpeed = 1.2;
-				ctrl.panSpeed = 0.8;
-				ctrl.noZoom = false;
-				ctrl.noPan = false;
-				ctrl.staticMoving = false;
-				ctrl.dynamicDampingFactor = 0.3;
-			},
-
-			initScene : function(width, height){
-				camera = new THREE.PerspectiveCamera( 20, width / height, 10, 1000 );
-				camera.position.set(0, 0, 300);
-
-				var ambient = new THREE.AmbientLight(0x202020);
-
-				var light = new THREE.DirectionalLight( 0xe0e0e0, 1 );
-					light.position = camera.position;
-				
-				camera.add( light );
-
-				canvasPlane.up = camera.up;
-
-				scene = new THREE.Scene();
-				scene.add(camera);
-				scene.add(ambient);
-				scene.add(canvasPlane);
-			},
-
-			render : function(){
-				canvasPlane.lookAt(camera.position);
-				rndr.render(scene, camera);
-			},
-
-			animate : function(){
-				var that = this;
-				requestAnimationFrame(function(){
-					that.animate();
-					ctrl.update();
-					that.render();
-				});
-			},
-
-			init : function(canvasElement, raycast){
-				var width = parseInt(canvasElement.style.width, 10),
-					height = parseInt(canvasElement.style.height, 10);
-
-
-				this.initScene(width, height);
-				this.initRenderer(canvasElement, width, height);
-				this.initControl(canvasElement);
-
-				this.rndr = rndr;
-				this.camera = camera;
-				this.scene = scene;
-				this.ctrl = ctrl;
-				this.canvasElement = canvasElement;
-
-				this.render();
-				this.animate();
-			}
-		}
-	})();
-
-/***/ },
-/* 6 */
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
 
-	var Curve = __webpack_require__(7);
+	var Curve = __webpack_require__(5);
 
 	module.exports = (function(){
 
@@ -36069,10 +36056,11 @@
 	})();
 
 /***/ },
-/* 7 */
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
+	var AdaptiveBezier = __webpack_require__(8);
 
 	var pointMaterial = new THREE.PointCloudMaterial({
 		side : THREE.DoubleSide,
@@ -36091,20 +36079,11 @@
 		var points = [];
 			points.push(vec0, vec1, vec2, vec3);
 
-		var resolution = Math.floor(points[0].distanceTo(points[1]) + points[1].distanceTo(points[2]) + points[2].distanceTo(points[3]));
-
-		var vertices = [];
-		for (var i = 0 ; i < resolution; i++) {
-			vertices[i] = new THREE.Vector3();
-		};
-
-
 		var handles = new THREE.PointCloud(new THREE.Geometry(), pointMaterial);
 			handles.geometry.vertices = points;
 			handles.geometry.verticesNeedUpdate = true;
 
-		var curveBody = new THREE.Line(new THREE.Geometry());
-			curveBody.geometry.vertices = vertices;
+		var curveBody = new THREE.PointCloud(new THREE.Geometry());
 			curveBody.geometry.verticesNeedUpdate = true;
 
 		var ctrl1 = new THREE.Line(new THREE.Geometry());
@@ -36128,24 +36107,11 @@
 		}
 		setPoints();
 
-		var setVertices = function(p, v){
-			for (var i = resolution - 1; i >= 0; i--) {
-				var t = i / (resolution - 1);
-				var tsq = t*t,
-					tcb = tsq*t,
-					t_sq = (1-t)*(1-t),
-					t_cb = t_sq*(1-t);
-
-				vertices[i].set(
-					p[0].x * tcb + 3*p[1].x * tsq * (1-t) + 3*p[2].x * t_sq* t + p[3].x * t_cb,
-					p[0].y * tcb + 3*p[1].y * tsq * (1-t) + 3*p[2].y * t_sq* t + p[3].y * t_cb,
-					p[0].z * tcb + 3*p[1].z * tsq * (1-t) + 3*p[2].z * t_sq* t + p[3].z * t_cb
-				);
-			};
-
+		var setVertices = function(p){
+			curveBody.geometry.vertices = AdaptiveBezier.bezierCurve(p[0], p[1], p[2], p[3]);
 			curveBody.geometry.verticesNeedUpdate = true;
 		}
-		setVertices(points, vertices);
+		setVertices(points);
 
 		return {
 			init : function(){
@@ -36163,7 +36129,7 @@
 				}
 
 				setPoints();
-				setVertices(points, vertices);
+				setVertices(points);
 			},
 
 			// Please be advised that this is not quite an intuitive operation
@@ -36181,13 +36147,13 @@
 				}
 				
 				setPoints();
-				setVertices(points, vertices);
+				setVertices(points);
 			},
 		}
 	}
 
 /***/ },
-/* 8 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
@@ -36222,6 +36188,95 @@
 	}
 
 
+
+/***/ },
+/* 7 */,
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+
+	module.exports = (function() {
+
+		var RECURSION_LIMIT = 5;
+		var PATH_DISTANCE_EPSILON =0.05;
+
+		function begin(p1, p2, p3, p4, vertices, distanceTolerance) {
+			vertices.push(p1.clone())
+			recursive(p1, p2, p3, p4, vertices, distanceTolerance, 0)
+			vertices.push(p4.clone())
+		}
+
+		function recursive(p1, p2, p3, p4, vertices, distanceTolerance, level) {
+			if(level > RECURSION_LIMIT)
+				return
+
+			var pi = Math.PI
+
+			var p12   = new THREE.Vector3(),
+				p23   = new THREE.Vector3(),
+				p34   = new THREE.Vector3(),
+				p123  = new THREE.Vector3(),
+				p234  = new THREE.Vector3(),
+				p1234 = new THREE.Vector3();
+
+			p12.addVectors(p1, p2);
+			p12.multiplyScalar(0.5);
+			p23.addVectors(p2, p3);
+			p23.multiplyScalar(0.5);
+			p34.addVectors(p3, p4);
+			p34.multiplyScalar(0.5);
+			p123.addVectors(p12, p23);
+			p123.multiplyScalar(0.5);
+			p234.addVectors(p23, p34);
+			p234.multiplyScalar(0.5);
+			p1234.addVectors(p123, p234);
+			p1234.multiplyScalar(0.5);
+
+			
+			if(level > 0) { 
+
+				var d = new THREE.Vector3();
+					d.subVectors(p4, p1);
+				var d_len_sq = d.lengthSq();
+
+				var p2_proj = new THREE.Vector3();
+					p2_proj.subVectors(p2, p1);
+				var p2_d = p2_proj.clone();
+					p2_proj.projectOnVector(d);
+
+				var p3_proj = new THREE.Vector3();
+					p3_proj.subVectors(p3, p1);
+				var p3_d = p3_proj.clone();
+					p3_proj.projectOnVector(d);
+
+				var p2_dist = p2_d.distanceTo(p2_proj),
+					p3_dist = p3_d.distanceTo(p3_proj);
+
+				
+				if((p2_dist+p3_dist) * (p2_dist+p3_dist) <= distanceTolerance * d_len_sq) {
+					vertices.push(p1234);
+					return;
+				}
+			}
+
+			// Continue subdivision
+			//----------------------
+			recursive(p1, p12, p123, p1234, vertices, distanceTolerance, level + 1) 
+			recursive(p1234, p234, p34, p4, vertices, distanceTolerance, level + 1) 
+
+		}
+
+		return {
+			bezierCurve : function(p1, p2, p3, p4) {
+				var vertices = []
+				var distanceTolerance = PATH_DISTANCE_EPSILON * PATH_DISTANCE_EPSILON
+				begin(p1, p2, p3, p4, vertices, distanceTolerance)
+				console.log(vertices);
+				return vertices
+			}
+		}
+	})();
 
 /***/ }
 /******/ ]);

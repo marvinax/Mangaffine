@@ -48,17 +48,6 @@ window.onload = function() {
 	View.add(ring3, "z-ring");
 
 	var curve = Curve(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 0, 0), new THREE.Vector3(10, 10, 0), new THREE.Vector3(0, 10, 0));
-	console.log(curve);
 	curve.init();
 	View.add(curve.curve, "curve");
-
-	var curve = Curve(new THREE.Vector3(0, 0, 10), new THREE.Vector3(10, 0, 0), new THREE.Vector3(10, 10, 0), new THREE.Vector3(0, 10, 0));
-	curve.init();
-	View.add(curve.curve, "curve2");
-
-
-	var vertex = new THREE.Vector3(1, 2, 3),
-		wp = Waypoint(vertex);
-	wp.translate(new THREE.Vector3(1,2,3));
-
 }
