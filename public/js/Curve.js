@@ -1,13 +1,43 @@
 var THREE = require('three');
-var AdaptiveBezier = require('./AdaptiveBezier.js');
+var ForwardDiffBezier = require('./ForwardDiffBezier.js');
 
-var pointMaterial = new THREE.PointCloudMaterial({
+var colors = {
+	darker : 0x01723F,
+	dark : 0x0A9154,
+	medium : 0x23A76B,
+	light : 0x40B580,
+	lighter : 0x69CDA0
+};
+
+var handlePointMaterial = new THREE.PointCloudMaterial({
 	side : THREE.DoubleSide,
-	// transparent : true,
-	opacity : 0.5,
-	color : 0xE11C51,
-	size : 3
+	color : colors.darker,
+	opacity : 0.8,
+	size : 2
 });
+
+var curveBodyPointMaterial = new THREE.PointCloudMaterial({
+	alphaTest : 0.5,
+	side : THREE.DoubleSide,
+	color : colors.dark,
+	transparent : true,
+	opacity : 0.5,
+	size : 1,
+});
+
+var curveBodyMaterial = new THREE.LineBasicMaterial({
+	side : THREE.DoubleSide,
+	color : colors.medium,
+	transparent : true,
+	opacity : 0.5
+}); 
+
+var handleBarMaterial = new THREE.LineBasicMaterial({
+	side : THREE.DoubleSide,
+	color : colors.dark,
+	transparent : true,
+	opacity : 0.5
+})
 
 module.exports = function(vec0, vec1, vec2, vec3){
 	/**
@@ -18,17 +48,17 @@ module.exports = function(vec0, vec1, vec2, vec3){
 	var points = [];
 		points.push(vec0, vec1, vec2, vec3);
 
-	var handles = new THREE.PointCloud(new THREE.Geometry(), pointMaterial);
+	var handles = new THREE.PointCloud(new THREE.Geometry(), handlePointMaterial);
 		handles.geometry.vertices = points;
 		handles.geometry.verticesNeedUpdate = true;
 
-	var curveBody = new THREE.PointCloud(new THREE.Geometry());
+	var curveBody = new THREE.Line(new THREE.Geometry(), curveBodyMaterial);
 		curveBody.geometry.verticesNeedUpdate = true;
 
-	var ctrl1 = new THREE.Line(new THREE.Geometry());
+	var ctrl1 = new THREE.Line(new THREE.Geometry(), handleBarMaterial);
 		ctrl1.geometry.verticesNeedUpdate = true;
 
-	var ctrl2 = new THREE.Line(new THREE.Geometry());
+	var ctrl2 = new THREE.Line(new THREE.Geometry(), handleBarMaterial);
 		ctrl2.geometry.verticesNeedUpdate = true;
 
 	var curve = new THREE.Object3D();
@@ -47,7 +77,7 @@ module.exports = function(vec0, vec1, vec2, vec3){
 	setPoints();
 
 	var setVertices = function(p){
-		curveBody.geometry.vertices = AdaptiveBezier.bezierCurve(p[0], p[1], p[2], p[3]);
+		curveBody.geometry.vertices = ForwardDiffBezier(p[0], p[1], p[2], p[3]);
 		curveBody.geometry.verticesNeedUpdate = true;
 	}
 	setVertices(points);
@@ -58,35 +88,49 @@ module.exports = function(vec0, vec1, vec2, vec3){
 			this.curve = curve;
 		},
 
+		remove : function(){
+
+		},
+
+		set : function(which, vec){
+			if(which === 0){
+				points[0].copy(vec);
+				points[1].copy(vec);
+			} else if (which === 1){
+				points[3].copy(vec);
+				points[2].copy(vec);
+			}
+			curve.remove(curveBody);
+			setPoints();
+			setVertices(points);
+			curve.add(curveBody);
+		},
+
 		move : function(which, vec){
 			if(which === 0){
 				points[0].add(vec);
 				points[1].add(vec);
-			} else {
+			} else if (which === 1){
 				points[3].add(vec);
 				points[2].add(vec);
 			}
-
+			curve.remove(curveBody);
 			setPoints();
 			setVertices(points);
+			curve.add(curveBody);
 		},
-
-		// Please be advised that this is not quite an intuitive operation
-		// in practice. edit the curve handler by setting a absolute 
-		// coordinate would be not easy to use. A better way would be 
-		// decompose the operation into changing the length/angle incrementally
-		// (however this is still not easy to use.) Preferrably to figure
-		// out a heuristic approach.
 		
 		edit : function(which, vec){
 			if(which === 0){
-				points[1] = points[0].add(vec);
-			} else {
-				points[2] = points[3].add(vec);
+				points[1].addVectors(points[0], vec);
+			} else if (which === 1 ){
+				points[2].addVectors(points[3], vec);
 			}
 			
+			curve.remove(curveBody);
 			setPoints();
 			setVertices(points);
+			curve.add(curveBody);
 		},
 	}
 }

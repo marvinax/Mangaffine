@@ -46,10 +46,8 @@
 
 	var THREE = __webpack_require__(1);
 	var View = __webpack_require__(2);
-	var Control = __webpack_require__(4);
-	var Curve = __webpack_require__(5);
-
-	var Waypoint = __webpack_require__(6);
+	var Curve = __webpack_require__(3);
+	var Path = __webpack_require__(5);
 
 	var line1 = new THREE.LineBasicMaterial({
 			opacity : 0.7,
@@ -77,25 +75,28 @@
 	var ring1 = new THREE.Line(centerGeom(), line1),
 		ring2 = new THREE.Line(centerGeom(), line2),
 		ring3 = new THREE.Line(centerGeom(), line3);
-		ring1.name = "ring-1";
-		ring2.name = "ring-2";
-		ring3.name = "ring-3";
-
 
 	window.onload = function() {
 		View.init($('#viewport').get(0));
-		Control.init(View);
+		// Control.init(View);
 
 		ring2.rotation.x = Math.PI / 2;
 		ring3.rotation.y = Math.PI / 2;
 
-		View.add(ring1, "x-ring");
-		View.add(ring2, "y-ring");
-		View.add(ring3, "z-ring");
+		// View.scene.add(ring1, ring2, ring3);
 
-		var curve = Curve(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 0, 0), new THREE.Vector3(10, 10, 0), new THREE.Vector3(0, 10, 0));
-		curve.init();
-		View.add(curve.curve, "curve");
+		var path = Path();
+			path.init();
+			path.add(new THREE.Vector3( 5, 0, 0 ));
+			path.add(new THREE.Vector3( 5, 10, 0 ));
+			path.addLast(new THREE.Vector3(5, 20, 0));
+
+			path.edit(0, new THREE.Vector3(10, 0, 0));
+			path.edit(1, new THREE.Vector3(-10, 0, 0));
+			path.edit(2, new THREE.Vector3(10, 0, 0));
+
+		View.add(path.path, "docs");
+		// console.log(View.sketch.children)
 	}
 
 /***/ },
@@ -35255,40 +35256,58 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
-	var Trackball = __webpack_require__(3);
-
-	// var bezierMaterial = 
+	var Trackball = __webpack_require__(6);
 
 	module.exports = (function(){
 		$('#viewport').height(window.innerHeight).width(window.innerWidth);
 		$('#command-line').focus();
 
 		// Fundamental objects of a three.js view
-		var ctrl, rndr, scene, camera;
+		var ctrl, rndr, camera, scene, sketch;
 
-		// Moving canvas (a plane always facing to camera)
-		var canvasPlane = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(180, 90),
-			new THREE.MeshBasicMaterial(
-				{
-					side : THREE.DoubleSide,
-					color : 0x7F7F7F,
-					transparent : true,
-					opacity : 0.2
-				}
-			));
-			canvasPlane.name = "canvas-plane";
+		// editingPlane is a plane mesh with fixed width and height,
+		// it will change it's origin to the control point of the path
+		// currently being edited. When mouse drags the control point
+		// to a new place, the new control point in 3D world would be 
+		// the intersection between the plane and the ray from camera
+		// through mouse.
+		var mouse, raycaster, intersects, editingPlane;
+
+		var editing = false;
+
+		var mouseOnHover = false;
+
+
+		var toggleEditing = function(){
+			editing = !editing;
+			ctrl.noRotate = !ctrl.noRotate;
+		};
+
 
 		return {
 
 			add : function(graphic, name){
 				graphic.name = name;
-				scene.add(graphic)
+				sketch.add(graphic)
 			},
 
 			remove : function(graphic){
-				scene.remove(graphic)
+				sketch.remove(graphic)
 			},
+
+			initCommand : function(){
+				$('#command-line').on("keydown", function(e){
+					if (e.which === 13) {
+						var command = $(this).val().split(" ")
+						if (command[0] === "edit"){
+							toggleEditing();
+							console.log(editing);
+						}
+						$(this).val('');
+					}
+				})
+			},
+
 
 			initRenderer : function(canvasElement, width, height){
 				rndr = new THREE.WebGLRenderer({
@@ -35301,17 +35320,39 @@
 				rndr.setPixelRatio(window.devicePixelRatio);
 				rndr.setSize(width, height);
 				rndr.setClearColor( 0xfafafa, 1);
+				rndr.sortObjects = false;
+			},
+
+			initEditingPlane : function(){
+				editingPlane = new THREE.Mesh(
+					new THREE.PlaneBufferGeometry( 100, 100),
+					new THREE.MeshBasicMaterial({
+						color : 0xDDDDDD,
+						transparent : true,
+						opacity : 0.2,
+						visible : false
+					})
+				);
+			},
+
+			initRaycaster : function(){
+				raycaster = new THREE.Raycaster();
+				mouse = new THREE.Vector2(0, 0);
+
+				window.addEventListener("mousemove", function(e){
+					mouse.x = ( event.clientX / rndr.domElement.width ) * 4 - 1;
+					mouse.y = - ( event.clientY / rndr.domElement.height ) * 4 + 1;
+				}, false);
 			},
 
 			initControl : function(canvasElement){
 				ctrl = new Trackball(camera, canvasElement);
-				ctrl.rotateSpeed = 1.0;
-				ctrl.zoomSpeed = 1.2;
+				ctrl.rotateSpeed = 1.;
+				ctrl.zoomSpeed = 1;
 				ctrl.panSpeed = 0.8;
 				ctrl.noZoom = false;
 				ctrl.noPan = false;
-				ctrl.staticMoving = false;
-				ctrl.dynamicDampingFactor = 0.3;
+				ctrl.dynamicDampingFactor = 0.5;
 			},
 
 			initScene : function(width, height){
@@ -35325,16 +35366,31 @@
 				
 				camera.add( light );
 
-				canvasPlane.up = camera.up;
-
 				scene = new THREE.Scene();
+				scene.fog = new THREE.FogExp2( 0xFFFFFF, 0.003 );
+
+				sketch = new THREE.Object3D();
+				sketch.up = camera.up;
+				sketch.lookAt(camera.position);
+
 				scene.add(camera);
 				scene.add(ambient);
-				scene.add(canvasPlane);
+				scene.add(sketch);
 			},
 
 			render : function(){
-				canvasPlane.lookAt(camera.position);
+				raycaster.setFromCamera(mouse, camera);
+
+				if(editing){
+					intersects = raycaster.intersectObject( sketch, true );
+					if(intersects.length > 0 ){
+						intersects.forEach(function(e){
+							if (e.object.type === "PointCloud") {
+
+							}
+						});
+					}
+				}
 				rndr.render(scene, camera);
 			},
 
@@ -35352,15 +35408,24 @@
 					height = parseInt(canvasElement.style.height, 10);
 
 
+				window.addEventListener('mousedown', function(e){
+					mouseDown = true;
+				}, false);
+
 				this.initScene(width, height);
 				this.initRenderer(canvasElement, width, height);
 				this.initControl(canvasElement);
+				this.initRaycaster();
+				this.initEditingPlane();
+				this.initCommand();
 
 				this.rndr = rndr;
 				this.camera = camera;
 				this.scene = scene;
 				this.ctrl = ctrl;
 				this.canvasElement = canvasElement;
+				this.raycaster = raycaster;
+				this.sketch = sketch;
 
 				this.render();
 				this.animate();
@@ -35370,6 +35435,322 @@
 
 /***/ },
 /* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+	var ForwardDiffBezier = __webpack_require__(4);
+
+	var colors = {
+		darker : 0x01723F,
+		dark : 0x0A9154,
+		medium : 0x23A76B,
+		light : 0x40B580,
+		lighter : 0x69CDA0
+	};
+
+	var handlePointMaterial = new THREE.PointCloudMaterial({
+		side : THREE.DoubleSide,
+		color : colors.darker,
+		opacity : 0.8,
+		size : 2
+	});
+
+	var curveBodyPointMaterial = new THREE.PointCloudMaterial({
+		alphaTest : 0.5,
+		side : THREE.DoubleSide,
+		color : colors.dark,
+		transparent : true,
+		opacity : 0.5,
+		size : 1,
+	});
+
+	var curveBodyMaterial = new THREE.LineBasicMaterial({
+		side : THREE.DoubleSide,
+		color : colors.medium,
+		transparent : true,
+		opacity : 0.5
+	}); 
+
+	var handleBarMaterial = new THREE.LineBasicMaterial({
+		side : THREE.DoubleSide,
+		color : colors.dark,
+		transparent : true,
+		opacity : 0.5
+	})
+
+	module.exports = function(vec0, vec1, vec2, vec3){
+		/**
+		 * Points array is used to generate the Bezier curve. Make sure
+		 * that only Vector3 reference is passed in.
+		 * @type {Array}
+		 */
+		var points = [];
+			points.push(vec0, vec1, vec2, vec3);
+
+		var handles = new THREE.PointCloud(new THREE.Geometry(), handlePointMaterial);
+			handles.geometry.vertices = points;
+			handles.geometry.verticesNeedUpdate = true;
+
+		var curveBody = new THREE.Line(new THREE.Geometry(), curveBodyMaterial);
+			curveBody.geometry.verticesNeedUpdate = true;
+
+		var ctrl1 = new THREE.Line(new THREE.Geometry(), handleBarMaterial);
+			ctrl1.geometry.verticesNeedUpdate = true;
+
+		var ctrl2 = new THREE.Line(new THREE.Geometry(), handleBarMaterial);
+			ctrl2.geometry.verticesNeedUpdate = true;
+
+		var curve = new THREE.Object3D();
+			curve.add(handles, curveBody, ctrl1, ctrl2);
+
+		var setPoints = function(){
+			ctrl1.geometry.vertices[0] = points[1];
+			ctrl1.geometry.vertices[1] = points[0];
+
+			ctrl2.geometry.vertices[0] = points[2];
+			ctrl2.geometry.vertices[1] = points[3];
+
+			ctrl1.geometry.verticesNeedUpdate = true;
+			ctrl2.geometry.verticesNeedUpdate = true;
+		}
+		setPoints();
+
+		var setVertices = function(p){
+			curveBody.geometry.vertices = ForwardDiffBezier(p[0], p[1], p[2], p[3]);
+			curveBody.geometry.verticesNeedUpdate = true;
+		}
+		setVertices(points);
+
+		return {
+			init : function(){
+				this.points = points;
+				this.curve = curve;
+			},
+
+			remove : function(){
+
+			},
+
+			set : function(which, vec){
+				if(which === 0){
+					points[0].copy(vec);
+					points[1].copy(vec);
+				} else if (which === 1){
+					points[3].copy(vec);
+					points[2].copy(vec);
+				}
+				curve.remove(curveBody);
+				setPoints();
+				setVertices(points);
+				curve.add(curveBody);
+			},
+
+			move : function(which, vec){
+				if(which === 0){
+					points[0].add(vec);
+					points[1].add(vec);
+				} else if (which === 1){
+					points[3].add(vec);
+					points[2].add(vec);
+				}
+				curve.remove(curveBody);
+				setPoints();
+				setVertices(points);
+				curve.add(curveBody);
+			},
+			
+			edit : function(which, vec){
+				if(which === 0){
+					points[1].addVectors(points[0], vec);
+				} else if (which === 1 ){
+					points[2].addVectors(points[3], vec);
+				}
+				
+				curve.remove(curveBody);
+				setPoints();
+				setVertices(points);
+				curve.add(curveBody);
+			},
+		}
+	}
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+
+	module.exports = (function(){
+		var SCALE = 5,
+			STEPS = 1<<SCALE;
+
+		var f			= new THREE.Vector3(),
+			fd			= new THREE.Vector3(),
+			fdd			= new THREE.Vector3(),
+			fddd		= new THREE.Vector3(),
+			fdd_per_2	= new THREE.Vector3(),
+			fddd_per_2	= new THREE.Vector3(),
+			fddd_per_6	= new THREE.Vector3();
+		var t			= 1.0 / STEPS;
+		var temp 		= t * t;
+
+		var vertices = [];
+		for(var i = 0; i <= STEPS; i++){
+			vertices.push(new THREE.Vector3());
+		}
+
+		function init(p1, p2, p3, p4){
+			// console.log("---init---")
+			f.copy(p1);
+			// console.log(f);
+			
+			fd.subVectors(p2, p1);
+			fd.multiplyScalar(3*t);
+			// console.log(fd);
+
+			fdd_per_2.addVectors(p1, p3);
+			fdd_per_2.sub(p2);
+			fdd_per_2.sub(p2);
+			fdd_per_2.multiplyScalar(3*temp);
+			// console.log(fdd_per_2);
+
+			fddd_per_2.subVectors(p2, p3);
+			fddd_per_2.multiplyScalar(3);
+			fddd_per_2.add(p4);
+			fddd_per_2.sub(p1);
+			fddd_per_2.multiplyScalar(3*temp*t);
+
+			fddd.addVectors(fddd_per_2, fddd_per_2);
+			fdd.addVectors(fdd_per_2, fdd_per_2);
+			fddd_per_6.copy(fddd_per_2);
+			fddd_per_6.multiplyScalar(1/3);
+		}
+
+		function update(){
+			// console.log('---update---');
+			f.addVectors(f, fd);
+			// console.log(f);
+
+			f.add(fdd_per_2);
+			f.add(fddd_per_6);
+
+			fd.addVectors(fd, fdd);
+			fd.add(fddd_per_2);
+			
+			fdd.addVectors(fdd, fddd);
+			
+			fdd_per_2.addVectors(fdd_per_2, fddd_per_2);
+		}
+
+		function bezierCurve(p1, p2, p3, p4){
+			vertices = [];
+			init(p1, p2, p3, p4);
+			for(var i = 0; i <= STEPS; i++){
+				vertices.push(f.clone());
+				update();
+			}
+
+			return vertices;
+		}
+
+		return bezierCurve;
+	})();
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+	var Curve = __webpack_require__(3);
+
+	module.exports = function(){
+		
+		/**
+		 * holding curve instances, generated from waypoints
+		 * @type {Array}
+		 */
+		var curves = [];
+
+		/**
+		 * holds all curve objects. Should be exposed to outside.
+		 * @type {THREE}
+		 */
+		var path = new THREE.Object3D();
+
+		var selected = false;
+
+		return {
+			init : function(){
+				this.path = path;
+			},
+
+			add : function(vec){
+				if(curves.length > 0){
+					var last = curves.length - 1,
+						lastPoint = curves[last].points[3];
+
+					curves[last].set(1, vec);
+
+					curves.push(Curve(lastPoint.clone(), lastPoint.clone(), vec.clone(), vec.clone()));
+					curves[last+1].init();
+					path.add(curves[last+1].curve);
+				} else {
+					curves.push(Curve(vec.clone(), vec.clone(), vec.clone(), vec.clone()));
+					curves[0].init();
+					path.add(curves[0].curve);
+				}
+			},
+
+			addLast : function(vec){
+				curves[curves.length-1].set(1, vec);
+			},
+
+			set : function(which, vector){
+				if( which < curves.length ){
+					console.log(which);
+					curves[which].set(0, vector);
+				}
+
+				if( which > 0 ){
+					console.log(which);
+					curves[which - 1].set(1, vector);
+				}
+			},
+
+			move : function(which, vector){
+				if(which === 0)
+					curves[0].move(0, vector);
+
+				if(which > 0)
+					curves[which-1].move(1, vector);
+
+				if(which < curves.length - 1)
+					curves[which].move(0, vector);
+
+				if(which === curves.length - 1)
+					curves[which].move(1, vector);
+
+			},
+
+			edit : function(which, vector){
+				var negate = vector.clone();
+					negate.negate();
+
+				if( which < curves.length ){
+					curves[which].edit(0, vector);
+				}
+
+				if( which > 0 ){
+					curves[which - 1].edit(1, negate);
+				}
+					
+			}
+
+		}
+	}
+
+/***/ },
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -35990,293 +36371,6 @@
 
 	Trackball.prototype = Object.create(THREE.EventDispatcher.prototype);
 
-
-/***/ },
-/* 4 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(1);
-
-	var Curve = __webpack_require__(5);
-
-	module.exports = (function(){
-
-		// For capturing the mouse coord over the screen
-		// and unproject to 3D model.
-		var	raycaster = new THREE.Raycaster(),
-			mouse = new THREE.Vector2();
-		
-		var rndr, ctrl, scene, camera, canvasElement;
-
-		var intersect = function(event){
-			mouse.x = ( 2*event.clientX / rndr.domElement.width ) * 2 - 1;
-			mouse.y = - ( 2*event.clientY / rndr.domElement.height ) * 2 + 1;
-			raycaster.setFromCamera( mouse, camera );
-			return raycaster.intersectObjects(scene.children);
-		}
-
-		var mouseDown = function(event){
-			
-		};
-
-		var mouseMove = function(event){
-
-		};
-
-		var mouseUp = function(event){
-
-		};
-
-		var parseCommand = function (event){
-			if (event.which === 13){
-				var command = $(this).val().split(',');
-				if(command[0] === "path"){
-					// Need to figure out how to stored as command history
-					// in order to implement undo/redo
-					console.log('a');
-				}
-			}
-
-		};
-
-		return {
-			init : function(threeView){
-				rndr = threeView.rndr;
-				ctrl = threeView.ctrl;
-				scene = threeView.scene;
-				camera = threeView.camera;
-				canvasElement = threeView.canvasElement;
-
-				canvasElement.addEventListener( 'mousedown', mouseDown, false );
-				canvasElement.addEventListener( 'mousemove', mouseMove, false );
-				canvasElement.addEventListener( 'mouseup', mouseUp, false );
-				$('#command-line').on('keydown', parseCommand);
-			}
-		}
-	})();
-
-/***/ },
-/* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(1);
-	var AdaptiveBezier = __webpack_require__(8);
-
-	var pointMaterial = new THREE.PointCloudMaterial({
-		side : THREE.DoubleSide,
-		// transparent : true,
-		opacity : 0.5,
-		color : 0xE11C51,
-		size : 3
-	});
-
-	module.exports = function(vec0, vec1, vec2, vec3){
-		/**
-		 * Points array is used to generate the Bezier curve. Make sure
-		 * that only Vector3 reference is passed in.
-		 * @type {Array}
-		 */
-		var points = [];
-			points.push(vec0, vec1, vec2, vec3);
-
-		var handles = new THREE.PointCloud(new THREE.Geometry(), pointMaterial);
-			handles.geometry.vertices = points;
-			handles.geometry.verticesNeedUpdate = true;
-
-		var curveBody = new THREE.PointCloud(new THREE.Geometry());
-			curveBody.geometry.verticesNeedUpdate = true;
-
-		var ctrl1 = new THREE.Line(new THREE.Geometry());
-			ctrl1.geometry.verticesNeedUpdate = true;
-
-		var ctrl2 = new THREE.Line(new THREE.Geometry());
-			ctrl2.geometry.verticesNeedUpdate = true;
-
-		var curve = new THREE.Object3D();
-			curve.add(handles, curveBody, ctrl1, ctrl2);
-
-		var setPoints = function(){
-			ctrl1.geometry.vertices[0] = points[1];
-			ctrl1.geometry.vertices[1] = points[0];
-
-			ctrl2.geometry.vertices[0] = points[2];
-			ctrl2.geometry.vertices[1] = points[3];
-
-			ctrl1.geometry.verticesNeedUpdate = true;
-			ctrl2.geometry.verticesNeedUpdate = true;
-		}
-		setPoints();
-
-		var setVertices = function(p){
-			curveBody.geometry.vertices = AdaptiveBezier.bezierCurve(p[0], p[1], p[2], p[3]);
-			curveBody.geometry.verticesNeedUpdate = true;
-		}
-		setVertices(points);
-
-		return {
-			init : function(){
-				this.points = points;
-				this.curve = curve;
-			},
-
-			move : function(which, vec){
-				if(which === 0){
-					points[0].add(vec);
-					points[1].add(vec);
-				} else {
-					points[3].add(vec);
-					points[2].add(vec);
-				}
-
-				setPoints();
-				setVertices(points);
-			},
-
-			// Please be advised that this is not quite an intuitive operation
-			// in practice. edit the curve handler by setting a absolute 
-			// coordinate would be not easy to use. A better way would be 
-			// decompose the operation into changing the length/angle incrementally
-			// (however this is still not easy to use.) Preferrably to figure
-			// out a heuristic approach.
-			
-			edit : function(which, vec){
-				if(which === 0){
-					points[1] = points[0].add(vec);
-				} else {
-					points[2] = points[3].add(vec);
-				}
-				
-				setPoints();
-				setVertices(points);
-			},
-		}
-	}
-
-/***/ },
-/* 6 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(1);
-
-	module.exports = function(vec){
-		var point = vec;
-		var controls = [vec.clone(), vec.clone()];
-
-		return {
-			init : function(){
-				this.point = point;
-				this.controls = controls;
-			},
-
-			move : function(vector){
-				point.add(vector);
-				controls[0].add(vector);
-				controls[1].add(vector);
-			},
-
-			edit : function(freeform, which, vector){
-				var distance = new THREE.Vector3();
-				controls[which].set(vector);
-				if(!freeform){
-					var distRatio = point.distanceTo(controls[1-which])/point.distanceTo(controls[which]);
-					distance.subVector(controls[which], point);
-					distance.multiplyScalar(distRatio)
-					controls[1-which].subVectors(point, distance);
-				}
-			}
-		}
-	}
-
-
-
-/***/ },
-/* 7 */,
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(1);
-
-	module.exports = (function() {
-
-		var RECURSION_LIMIT = 5;
-		var PATH_DISTANCE_EPSILON =0.05;
-
-		function begin(p1, p2, p3, p4, vertices, distanceTolerance) {
-			vertices.push(p1.clone())
-			recursive(p1, p2, p3, p4, vertices, distanceTolerance, 0)
-			vertices.push(p4.clone())
-		}
-
-		function recursive(p1, p2, p3, p4, vertices, distanceTolerance, level) {
-			if(level > RECURSION_LIMIT)
-				return
-
-			var pi = Math.PI
-
-			var p12   = new THREE.Vector3(),
-				p23   = new THREE.Vector3(),
-				p34   = new THREE.Vector3(),
-				p123  = new THREE.Vector3(),
-				p234  = new THREE.Vector3(),
-				p1234 = new THREE.Vector3();
-
-			p12.addVectors(p1, p2);
-			p12.multiplyScalar(0.5);
-			p23.addVectors(p2, p3);
-			p23.multiplyScalar(0.5);
-			p34.addVectors(p3, p4);
-			p34.multiplyScalar(0.5);
-			p123.addVectors(p12, p23);
-			p123.multiplyScalar(0.5);
-			p234.addVectors(p23, p34);
-			p234.multiplyScalar(0.5);
-			p1234.addVectors(p123, p234);
-			p1234.multiplyScalar(0.5);
-
-			
-			if(level > 0) { 
-
-				var d = new THREE.Vector3();
-					d.subVectors(p4, p1);
-				var d_len_sq = d.lengthSq();
-
-				var p2_proj = new THREE.Vector3();
-					p2_proj.subVectors(p2, p1);
-				var p2_d = p2_proj.clone();
-					p2_proj.projectOnVector(d);
-
-				var p3_proj = new THREE.Vector3();
-					p3_proj.subVectors(p3, p1);
-				var p3_d = p3_proj.clone();
-					p3_proj.projectOnVector(d);
-
-				var p2_dist = p2_d.distanceTo(p2_proj),
-					p3_dist = p3_d.distanceTo(p3_proj);
-
-				
-				if((p2_dist+p3_dist) * (p2_dist+p3_dist) <= distanceTolerance * d_len_sq) {
-					vertices.push(p1234);
-					return;
-				}
-			}
-
-			// Continue subdivision
-			//----------------------
-			recursive(p1, p12, p123, p1234, vertices, distanceTolerance, level + 1) 
-			recursive(p1234, p234, p34, p4, vertices, distanceTolerance, level + 1) 
-
-		}
-
-		return {
-			bezierCurve : function(p1, p2, p3, p4) {
-				var vertices = []
-				var distanceTolerance = PATH_DISTANCE_EPSILON * PATH_DISTANCE_EPSILON
-				begin(p1, p2, p3, p4, vertices, distanceTolerance)
-				console.log(vertices);
-				return vertices
-			}
-		}
-	})();
 
 /***/ }
 /******/ ]);

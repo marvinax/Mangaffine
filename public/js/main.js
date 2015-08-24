@@ -1,9 +1,7 @@
 var THREE = require('three');
 var View = require('./View.js');
-var Control = require('./Control.js');
 var Curve = require('./Curve.js');
-
-var Waypoint = require('./Waypoint.js');
+var Path = require('./Path.js');
 
 var line1 = new THREE.LineBasicMaterial({
 		opacity : 0.7,
@@ -31,23 +29,26 @@ var centerGeom = function(){
 var ring1 = new THREE.Line(centerGeom(), line1),
 	ring2 = new THREE.Line(centerGeom(), line2),
 	ring3 = new THREE.Line(centerGeom(), line3);
-	ring1.name = "ring-1";
-	ring2.name = "ring-2";
-	ring3.name = "ring-3";
-
 
 window.onload = function() {
 	View.init($('#viewport').get(0));
-	Control.init(View);
+	// Control.init(View);
 
 	ring2.rotation.x = Math.PI / 2;
 	ring3.rotation.y = Math.PI / 2;
 
-	View.add(ring1, "x-ring");
-	View.add(ring2, "y-ring");
-	View.add(ring3, "z-ring");
+	// View.scene.add(ring1, ring2, ring3);
 
-	var curve = Curve(new THREE.Vector3(0, 0, 0), new THREE.Vector3(10, 0, 0), new THREE.Vector3(10, 10, 0), new THREE.Vector3(0, 10, 0));
-	curve.init();
-	View.add(curve.curve, "curve");
+	var path = Path();
+		path.init();
+		path.add(new THREE.Vector3( 5, 0, 0 ));
+		path.add(new THREE.Vector3( 5, 10, 0 ));
+		path.addLast(new THREE.Vector3(5, 20, 0));
+
+		path.edit(0, new THREE.Vector3(10, 0, 0));
+		path.edit(1, new THREE.Vector3(-10, 0, 0));
+		path.edit(2, new THREE.Vector3(10, 0, 0));
+
+	View.add(path.path, "docs");
+	// console.log(View.sketch.children)
 }
