@@ -14,60 +14,38 @@ module.exports = (function(){
 	var t			= 1.0 / STEPS;
 	var temp 		= t * t;
 
-	var vertices = [];
-	for(var i = 0; i <= STEPS; i++){
-		vertices.push(new THREE.Vector3());
+	function initComponent(which, p1, p2, p3, p4){
+		var p_1 = p1[which],
+			p_2 = p2[which],
+			p_3 = p3[which],
+			p_4 = p4[which];
+
+		f[which]			= p_1;
+		fd[which] 			= 3 * t * ( p_2 - p_1 );
+		fdd_per_2[which]	= 3 * temp * ( p_1 + p_3 - 2* p_2 );
+		fddd_per_2[which]	= 3 * temp * t * ( 3 * ( p_2 - p_3 ) + p_4 - p_1 );
+		fddd[which]			= 2 * fddd_per_2[which];
+		fdd[which]			= 2 * fdd_per_2[which];
+		fddd_per_6[which]	= fddd_per_2[which] / 3;
 	}
 
-	function init(p1, p2, p3, p4){
-		// console.log("---init---")
-		f.copy(p1);
-		// console.log(f);
-		
-		fd.subVectors(p2, p1);
-		fd.multiplyScalar(3*t);
-		// console.log(fd);
-
-		fdd_per_2.addVectors(p1, p3);
-		fdd_per_2.sub(p2);
-		fdd_per_2.sub(p2);
-		fdd_per_2.multiplyScalar(3*temp);
-		// console.log(fdd_per_2);
-
-		fddd_per_2.subVectors(p2, p3);
-		fddd_per_2.multiplyScalar(3);
-		fddd_per_2.add(p4);
-		fddd_per_2.sub(p1);
-		fddd_per_2.multiplyScalar(3*temp*t);
-
-		fddd.addVectors(fddd_per_2, fddd_per_2);
-		fdd.addVectors(fdd_per_2, fdd_per_2);
-		fddd_per_6.copy(fddd_per_2);
-		fddd_per_6.multiplyScalar(1/3);
+	function updateComponent(which){
+		f[which]			+= fd[which] + fdd_per_2[which] + fddd_per_6[which];
+		fd[which]			+= fdd[which] + fddd_per_2[which];
+		fdd[which]			+= fddd[which];
+		fdd_per_2[which]	+= fddd_per_2[which];
 	}
 
-	function update(){
-		// console.log('---update---');
-		f.addVectors(f, fd);
-		// console.log(f);
-
-		f.add(fdd_per_2);
-		f.add(fddd_per_6);
-
-		fd.addVectors(fd, fdd);
-		fd.add(fddd_per_2);
-		
-		fdd.addVectors(fdd, fddd);
-		
-		fdd_per_2.addVectors(fdd_per_2, fddd_per_2);
-	}
-
-	function bezierCurve(p1, p2, p3, p4){
-		vertices = [];
-		init(p1, p2, p3, p4);
+	function bezierCurve(points){
+		var vertices = [];
+		initComponent("x", points[0], points[1], points[2], points[3]);
+		initComponent("y", points[0], points[1], points[2], points[3]);
+		initComponent("z", points[0], points[1], points[2], points[3]);
 		for(var i = 0; i <= STEPS; i++){
 			vertices.push(f.clone());
-			update();
+			updateComponent("x");
+			updateComponent("y");
+			updateComponent("z");
 		}
 
 		return vertices;

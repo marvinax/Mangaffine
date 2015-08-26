@@ -1,88 +1,89 @@
 var THREE = require('three');
 var Curve = require('./Curve.js');
 
-module.exports = function(){
-	
-	/**
-	 * holding curve instances, generated from waypoints
-	 * @type {Array}
-	 */
-	var curves = [];
+Path = function(points){
+	THREE.Object3D.call( this );
 
-	/**
-	 * holds all curve objects. Should be exposed to outside.
-	 * @type {THREE}
-	 */
-	var path = new THREE.Object3D();
+	this.points = points;
 
-	var selected = false;
+	for (var i = 3; i < points.length; i+=3){
+		this.add(new Curve(this.points.slice(i-3, i+1)));
+	}
+}
 
-	return {
-		init : function(){
-			this.path = path;
-		},
+Path.prototype = Object.create( THREE.Object3D.prototype );
+Path.prototype.constructor = Path;
 
-		add : function(vec){
-			if(curves.length > 0){
-				var last = curves.length - 1,
-					lastPoint = curves[last].points[3];
+Path.prototype.addPoint = function(point){
+	var len = this.points.length;
+	var lastTangent = this.points[len-1].clone();
+		lastTangent.subVectors(this.points[len-1], this.points[len-2]);
+	this.points.push(this.points[len-1].clone().add(lastTangent), point.clone(), point.clone());
+	this.add(new Curve(this.points.slice(this.points.length - 4)));
+}
 
-				curves[last].set(1, vec);
+Path.prototype.removePointAt = function(index){
+	// index is within the range of (0, (this.points.length - 1) / 3 * 2 + 1)
+	if (index == 0){
+		this.points.splice(0, 3);
+		this.remove(this.children[0]);
+	} else if (index == this.children.length){
+		this.points.splice(this.points.length - 4, 3);
+		this.remove(this.children[index-1]);
+	} else {
+		this.points.splice((index - 1) * 3, 3);
+		this.remove(this.children[index]);
+		this.children[index-1].set(2, this.points[index*3-1]);
+		this.children[index-1].set(3, this.points[index*3]);
+	}
+}
 
-				curves.push(Curve(lastPoint.clone(), lastPoint.clone(), vec.clone(), vec.clone()));
-				curves[last+1].init();
-				path.add(curves[last+1].curve);
-			} else {
-				curves.push(Curve(vec.clone(), vec.clone(), vec.clone(), vec.clone()));
-				curves[0].init();
-				path.add(curves[0].curve);
-			}
-		},
+Path.prototype.setEndPointAt = function(point, index){
+	var move = point.clone();
 
-		addLast : function(vec){
-			curves[curves.length-1].set(1, vec);
-		},
+	if(index == 0){
+		move.sub(this.points[0]);
+		this.points[1].add(move);
+		this.points[0] = point;
+		this.children[0].set(0, this.points[0]);
+		this.children[0].set(1, this.points[1]);
+	} else if (index == this.children.length){
+		move.sub(this.points[index*3]);
+		this.points[index*3-1].add(move);
+		this.points[index*3] = point;
+		this.children[index].set(3, this.points[index*3]);
+		this.children[index].set(2, this.points[index*3-1]);
+	} else {
+		move.sub(this.points[index*3]);
+		this.points[index*3-1].add(move);
+		this.points[index*3+1].add(move);
+		this.points[index*3] = point;
+		this.children[index-1].set(3, this.points[index*3]);
+		this.children[index-1].set(2, this.points[index*3-1]);
+		this.children[index].set(0, this.points[index*3]);
+		this.children[index].set(1, this.points[index*3+1]);
+	}
+}
 
-		set : function(which, vector){
-			if( which < curves.length ){
-				console.log(which);
-				curves[which].set(0, vector);
-			}
+Path.prototype.setControlPointAt = function(point, index, which, directionLocked, ratioLocked){
+	var len = this.points.length;
+	var dist = new THREE.Vector3();
 
-			if( which > 0 ){
-				console.log(which);
-				curves[which - 1].set(1, vector);
-			}
-		},
-
-		move : function(which, vector){
-			if(which === 0)
-				curves[0].move(0, vector);
-
-			if(which > 0)
-				curves[which-1].move(1, vector);
-
-			if(which < curves.length - 1)
-				curves[which].move(0, vector);
-
-			if(which === curves.length - 1)
-				curves[which].move(1, vector);
-
-		},
-
-		edit : function(which, vector){
-			var negate = vector.clone();
-				negate.negate();
-
-			if( which < curves.length ){
-				curves[which].edit(0, vector);
-			}
-
-			if( which > 0 ){
-				curves[which - 1].edit(1, negate);
-			}
-				
+	if (index == 0){
+		this.points[1] = point;
+	} else if (index === len){
+		this.points[index * 3 - 1] = point;
+	} else {
+		if(ratioLocked){
+			var ratio = this.points[index*3].distanceTo(this.points[index*3 - which])/this.points[index*3].distanceTo(this.points[index*3 + which]);
 		}
-
+		dist.subVectors(this.points[index*3+which], this.points[index*3]);
+		this.points[index * 3 + which] = point;
+		if(directionLocked){
+			this.points[index * 3 - which].subVectors(this.points[index*3], dist);
+			if(ratioLocked){
+				this.points[index * 3 - which].multiplyScalar(ratio);
+			}
+		}
 	}
 }

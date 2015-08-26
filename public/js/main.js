@@ -1,6 +1,6 @@
 var THREE = require('three');
 var View = require('./View.js');
-var Curve = require('./Curve.js');
+var EditableCurve = require('./EditableCurve.js');
 var Path = require('./Path.js');
 
 var line1 = new THREE.LineBasicMaterial({
@@ -39,16 +39,17 @@ window.onload = function() {
 
 	// View.scene.add(ring1, ring2, ring3);
 
-	var path = Path();
-		path.init();
-		path.add(new THREE.Vector3( 5, 0, 0 ));
-		path.add(new THREE.Vector3( 5, 10, 0 ));
-		path.addLast(new THREE.Vector3(5, 20, 0));
-
-		path.edit(0, new THREE.Vector3(10, 0, 0));
-		path.edit(1, new THREE.Vector3(-10, 0, 0));
-		path.edit(2, new THREE.Vector3(10, 0, 0));
-
-	View.add(path.path, "docs");
+	var points = [
+		new THREE.Vector3(-10, 0, 0),
+		new THREE.Vector3(-10, -10, 0),
+		new THREE.Vector3(0, -10, 0),
+		new THREE.Vector3(0, 0, 0),
+		new THREE.Vector3(0, 10, 0),
+		new THREE.Vector3(10, 10, 0),
+		new THREE.Vector3(10, 0, 0)
+	];
+	var path = new EditablePath(points);
+	View.add(path, "docs");
+	// curve.set(1, new THREE.Vector3(0, 20, 0));
 	// console.log(View.sketch.children)
 }

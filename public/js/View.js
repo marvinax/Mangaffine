@@ -19,7 +19,10 @@ module.exports = (function(){
 	var editing = false;
 
 	var mouseOnHover = false;
+		mouseDown = false;
+		mouseDrag = false;
 
+	var editingPoint = new THREE.Vector3( );
 
 	var toggleEditing = function(){
 		editing = !editing;
@@ -44,7 +47,6 @@ module.exports = (function(){
 					var command = $(this).val().split(" ")
 					if (command[0] === "edit"){
 						toggleEditing();
-						console.log(editing);
 					}
 					$(this).val('');
 				}
@@ -82,10 +84,22 @@ module.exports = (function(){
 			raycaster = new THREE.Raycaster();
 			mouse = new THREE.Vector2(0, 0);
 
+			window.addEventListener("mousedown", function(e){
+				console.log('asd');
+				mouseDown = true;
+				mouse.x = ( e.clientX / rndr.domElement.width ) * 4 - 1;
+				mouse.y = - ( e.clientY / rndr.domElement.height ) * 4 + 1;
+			})
+
+			$('#viewport').mouseup(function(e){
+				mouseDown = false;
+			})
+
 			window.addEventListener("mousemove", function(e){
-				mouse.x = ( event.clientX / rndr.domElement.width ) * 4 - 1;
-				mouse.y = - ( event.clientY / rndr.domElement.height ) * 4 + 1;
+				mouse.x = ( e.clientX / rndr.domElement.width ) * 4 - 1;
+				mouse.y = - ( e.clientY / rndr.domElement.height ) * 4 + 1;
 			}, false);
+
 		},
 
 		initControl : function(canvasElement){
@@ -100,7 +114,7 @@ module.exports = (function(){
 
 		initScene : function(width, height){
 			camera = new THREE.PerspectiveCamera( 20, width / height, 10, 1000 );
-			camera.position.set(0, 0, 300);
+			camera.position.set(0, 0, 200);
 
 			var ambient = new THREE.AmbientLight(0x202020);
 
@@ -121,28 +135,36 @@ module.exports = (function(){
 			scene.add(sketch);
 		},
 
-		render : function(){
+		render : function(timestamp){
 			raycaster.setFromCamera(mouse, camera);
 
 			if(editing){
 				intersects = raycaster.intersectObject( sketch, true );
 				if(intersects.length > 0 ){
-					intersects.forEach(function(e){
-						if (e.object.type === "PointCloud") {
 
-						}
+					mouseOnHover = intersects.some(function(e){
+						return e.object.type == "PointCloud"
 					});
+
+				} else
+					mouseOnHover = false;
+
+				if(mouseOnHover){
+					console.log(intersects.filter(function(e){
+						return e.object.type === "PointCloud"
+					}).map(function(e){return e.index}));
 				}
+
 			}
 			rndr.render(scene, camera);
 		},
 
 		animate : function(){
 			var that = this;
-			requestAnimationFrame(function(){
+			requestAnimationFrame(function(time){
 				that.animate();
 				ctrl.update();
-				that.render();
+				that.render(time);
 			});
 		},
 
@@ -150,10 +172,6 @@ module.exports = (function(){
 			var width = parseInt(canvasElement.style.width, 10),
 				height = parseInt(canvasElement.style.height, 10);
 
-
-			window.addEventListener('mousedown', function(e){
-				mouseDown = true;
-			}, false);
 
 			this.initScene(width, height);
 			this.initRenderer(canvasElement, width, height);
