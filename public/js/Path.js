@@ -28,7 +28,7 @@ Path.prototype.removePointAt = function(index){
 		this.points.splice(0, 3);
 		this.remove(this.children[0]);
 	} else if (index == this.children.length){
-		this.points.splice(this.points.length - 4, 3);
+		this.points.splice(this.points.length - 3, 3);
 		this.remove(this.children[index-1]);
 	} else {
 		this.points.splice((index - 1) * 3, 3);
@@ -51,8 +51,8 @@ Path.prototype.setEndPointAt = function(point, index){
 		move.sub(this.points[index*3]);
 		this.points[index*3-1].add(move);
 		this.points[index*3] = point;
-		this.children[index].set(3, this.points[index*3]);
-		this.children[index].set(2, this.points[index*3-1]);
+		this.children[index-1].set(3, this.points[index*3]);
+		this.children[index-1].set(2, this.points[index*3-1]);
 	} else {
 		move.sub(this.points[index*3]);
 		this.points[index*3-1].add(move);
@@ -71,19 +71,33 @@ Path.prototype.setControlPointAt = function(point, index, which, directionLocked
 
 	if (index == 0){
 		this.points[1] = point;
-	} else if (index === len){
+		this.children[index].set(1, this.points[1]);
+	} else if (index === this.children.length){
 		this.points[index * 3 - 1] = point;
+		this.children[index-1].set(2, this.points[index*3-1]);
 	} else {
+
 		if(ratioLocked){
 			var ratio = this.points[index*3].distanceTo(this.points[index*3 - which])/this.points[index*3].distanceTo(this.points[index*3 + which]);
+			// console.log(this.points[index*3].distanceTo(this.points[index*3 - which]));
 		}
-		dist.subVectors(this.points[index*3+which], this.points[index*3]);
 		this.points[index * 3 + which] = point;
+		this.children[index - ((which == 1) ? 0 : 1)].set((which == 1 ? 1 : 2), this.points[index*3+which]);
+		dist.subVectors(this.points[index*3+which], this.points[index*3]);
+		
 		if(directionLocked){
+
 			this.points[index * 3 - which].subVectors(this.points[index*3], dist);
+
 			if(ratioLocked){
 				this.points[index * 3 - which].multiplyScalar(ratio);
+				// console.log(this.points[index * 3 - which]);
 			}
+			this.children[index - ((which == 1) ? 1 : 0)].set((which == 1 ? 2 : 1), this.points[index*3-which]);
 		}
 	}
 }
+
+
+
+module.exports = Path;

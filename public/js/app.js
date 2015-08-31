@@ -46,8 +46,9 @@
 
 	var THREE = __webpack_require__(1);
 	var View = __webpack_require__(2);
-	var EditableCurve = __webpack_require__(7);
-	var Path = __webpack_require__(6);
+	var Curve = __webpack_require__(6);
+	var Path = __webpack_require__(8);
+	var EditablePath = __webpack_require__(5);
 
 	var line1 = new THREE.LineBasicMaterial({
 			opacity : 0.7,
@@ -89,14 +90,20 @@
 			new THREE.Vector3(-10, 0, 0),
 			new THREE.Vector3(-10, -10, 0),
 			new THREE.Vector3(0, -10, 0),
-			new THREE.Vector3(0, 0, 0),
-			new THREE.Vector3(0, 10, 0),
-			new THREE.Vector3(10, 10, 0),
-			new THREE.Vector3(10, 0, 0)
+			new THREE.Vector3(0, 0, 0)
 		];
 		var path = new EditablePath(points);
 		View.add(path, "docs");
-		// curve.set(1, new THREE.Vector3(0, 20, 0));
+
+		path.addPoint(new THREE.Vector3(10, 0, 0));
+		path.removePointAt(2);
+		path.addPoint(new THREE.Vector3(10, 0, 0));
+		path.setEndPointAt(new THREE.Vector3(-20, 0, 0), 0);
+		path.setEndPointAt(new THREE.Vector3(20, 0, 0), 2);
+		path.setControlPointAt(new THREE.Vector3(-20, -20, 0), 1, 1);
+		path.setControlPointAt(new THREE.Vector3(0, -40, 0), 1, -1);
+		path.setControlPointAt(new THREE.Vector3(10, -15, 15), 1, -1, true, true);
+		path.setControlPointAt(new THREE.Vector3(20, 15, 0), 2);
 		// console.log(View.sketch.children)
 	}
 
@@ -35258,6 +35265,7 @@
 
 	var THREE = __webpack_require__(1);
 	var Trackball = __webpack_require__(3);
+	var EditableSketch = __webpack_require__(4);
 
 	module.exports = (function(){
 		$('#viewport').height(window.innerHeight).width(window.innerWidth);
@@ -35311,7 +35319,6 @@
 				})
 			},
 
-
 			initRenderer : function(canvasElement, width, height){
 				rndr = new THREE.WebGLRenderer({
 					alpha:true,
@@ -35324,40 +35331,6 @@
 				rndr.setSize(width, height);
 				rndr.setClearColor( 0xfafafa, 1);
 				rndr.sortObjects = false;
-			},
-
-			initEditingPlane : function(){
-				editingPlane = new THREE.Mesh(
-					new THREE.PlaneBufferGeometry( 100, 100),
-					new THREE.MeshBasicMaterial({
-						color : 0xDDDDDD,
-						transparent : true,
-						opacity : 0.2,
-						visible : false
-					})
-				);
-			},
-
-			initRaycaster : function(){
-				raycaster = new THREE.Raycaster();
-				mouse = new THREE.Vector2(0, 0);
-
-				window.addEventListener("mousedown", function(e){
-					console.log('asd');
-					mouseDown = true;
-					mouse.x = ( e.clientX / rndr.domElement.width ) * 4 - 1;
-					mouse.y = - ( e.clientY / rndr.domElement.height ) * 4 + 1;
-				})
-
-				$('#viewport').mouseup(function(e){
-					mouseDown = false;
-				})
-
-				window.addEventListener("mousemove", function(e){
-					mouse.x = ( e.clientX / rndr.domElement.width ) * 4 - 1;
-					mouse.y = - ( e.clientY / rndr.domElement.height ) * 4 + 1;
-				}, false);
-
 			},
 
 			initControl : function(canvasElement){
@@ -35384,36 +35357,16 @@
 				scene = new THREE.Scene();
 				scene.fog = new THREE.FogExp2( 0xFFFFFF, 0.003 );
 
-				sketch = new THREE.Object3D();
-				sketch.up = camera.up;
-				sketch.lookAt(camera.position);
-
 				scene.add(camera);
 				scene.add(ambient);
+			},
+
+			initSketch : function(rndr, scene, camera, ctrl){
+				sketch = new EditableSketch(rndr, scene, camera, ctrl);
 				scene.add(sketch);
 			},
 
 			render : function(timestamp){
-				raycaster.setFromCamera(mouse, camera);
-
-				if(editing){
-					intersects = raycaster.intersectObject( sketch, true );
-					if(intersects.length > 0 ){
-
-						mouseOnHover = intersects.some(function(e){
-							return e.object.type == "PointCloud"
-						});
-
-					} else
-						mouseOnHover = false;
-
-					if(mouseOnHover){
-						console.log(intersects.filter(function(e){
-							return e.object.type === "PointCloud"
-						}).map(function(e){return e.index}));
-					}
-
-				}
 				rndr.render(scene, camera);
 			},
 
@@ -35426,7 +35379,7 @@
 				});
 			},
 
-			init : function(canvasElement, raycast){
+			init : function(canvasElement){
 				var width = parseInt(canvasElement.style.width, 10),
 					height = parseInt(canvasElement.style.height, 10);
 
@@ -35434,8 +35387,7 @@
 				this.initScene(width, height);
 				this.initRenderer(canvasElement, width, height);
 				this.initControl(canvasElement);
-				this.initRaycaster();
-				this.initEditingPlane();
+				this.initSketch(rndr, scene, camera, ctrl);
 				this.initCommand();
 
 				this.rndr = rndr;
@@ -35443,7 +35395,6 @@
 				this.scene = scene;
 				this.ctrl = ctrl;
 				this.canvasElement = canvasElement;
-				this.raycaster = raycaster;
 				this.sketch = sketch;
 
 				this.render();
@@ -36076,8 +36027,349 @@
 
 
 /***/ },
-/* 4 */,
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+	var EditablePath = __webpack_require__(5);
+
+	EditableSketch = function(renderer, scene, camera, controls, callback){
+		THREE.Object3D.call(this);
+
+		this.plane = new THREE.Mesh(
+						new THREE.PlaneBufferGeometry( 2000, 2000, 8, 8 ),
+						new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true } )
+					);
+		this.plane.visible = false;
+		scene.add( this.plane );
+
+		this.raycaster = new THREE.Raycaster();
+		this.container = renderer.domElement.parentNode;
+		this.offset = new THREE.Vector3();
+
+		this.editing = false;
+		this.adding = true;
+
+		this.mouse = new THREE.Vector3();
+
+		this.STARTPOINT = new THREE.PointCloud(new THREE.Geometry(), new THREE.PointCloudMaterial({color : 0x000000}));
+		this.STARTPOINT.material.transparent = true;
+		this.STARTPOINT.material.opacity = 0.9;
+		this.STARTPOINT.material.size = 20;
+		this.STARTPOINT.material.sizeAttenuation = false;
+
+		this.STARTPOINT.geometry.vertices = [new THREE.Vector3()];
+		this.STARTPOINT.geometry.verticesNeedUpdate = true;
+		this.STARTPOINT.visible = false;
+		scene.add(this.STARTPOINT);
+
+		var onSketchMouseMove = function( event ) {
+
+			event.preventDefault();
+
+
+
+
+			this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+			this.mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+			this.raycaster.setFromCamera( this.mouse, camera );
+
+			if(this.adding){
+				// do nothing if mouse button is not pressed.
+				// 
+			}
+
+			if(this.editing){
+				if ( this.SELECTED ) {
+					// console.log(this.SELECTED.object.parent.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
+					var intersects = this.raycaster.intersectObject( this.plane );
+					this.SELECTED.object.parent.setFromRaycaster(this.SELECTED, intersects[0].point, this.offset);
+					return;
+		
+				}
+		
+				var intersects = this.raycaster.intersectObjects( this.children );
+		
+				if ( intersects.length > 0 ) {
+					if ( (this.INTERSECTED == null) ){
+						this.INTERSECTED = intersects[ 0 ];
+						// console.log(this.INTERSECTED.object.parent.points[this.INTERSECTED.index]);
+						this.plane.position.copy( this.INTERSECTED.object.parent.points[this.INTERSECTED.index] );
+						this.plane.lookAt( camera.position );
+					}
+		
+					this.container.style.cursor = 'pointer';
+		
+				} else {
+		
+					this.INTERSECTED = null;
+		
+					this.container.style.cursor = 'auto';
+		
+				}
+			}
+		}.bind(this);
+
+		renderer.domElement.addEventListener( 'mousemove', onSketchMouseMove, false );
+
+
+		var onSketchMouseDown = function ( event ) {
+			event.preventDefault();
+
+			var raycaster = new THREE.Raycaster();
+				raycaster.setFromCamera(this.mouse, camera);
+
+			if (this.editing) {	
+				var intersects = raycaster.intersectObjects( this.children );
+
+				if ( intersects.length > 0 ) {
+					// console.log(intersects.map(function(e){return e.index}));
+					controls.enabled = false;
+
+					if(intersects[0].index == 0) {
+						this.SELECTED = intersects[ 1 ];
+					} else if (intersects.length == 3){
+						// for non-end point over the path.
+						this.SELECTED = intersects[2];
+					} else {
+						this.SELECTED = intersects[0];
+					}
+
+					// NOTE that the intersects has been changed to the intersection between the ray 
+					// of the mouse and the invisible plane, since the former intersect between mouse
+					// ray and point cloud has been retained to this.SELECTED.
+					var intersects = raycaster.intersectObject( this.plane );
+					this.offset.copy( intersects[0].point ).sub( this.plane.position );
+
+					this.container.style.cursor = 'move';
+
+				}
+			}
+		}.bind(this);
+
+		renderer.domElement.addEventListener( 'mousedown', onSketchMouseDown, false );
+
+		var onSketchMouseUp = function( event ) {
+
+			event.preventDefault();
+
+			var raycaster = new THREE.Raycaster();
+				raycaster.setFromCamera(this.mouse, camera);
+
+			if(this.NEWPATH){
+				var finish = raycaster.intersectObject( this.NEWPATH );
+				if (finish[0]){
+					controls.enabled = true;
+					this.adding = false;
+					this.editing = true;
+					this.NEWPATH = null;
+				}
+			}
+
+
+			if (this.adding) {
+				var p = raycaster.intersectObject( this.plane )[0].point;
+
+				if (!this.NEWPATH){
+
+					controls.enabled = false;
+					
+					// handles the first point of the path is created, while the first curve
+					// is not created yet.
+					
+					if(!this.START){
+						this.START = p;
+						this.STARTPOINT.geometry.vertices = [p];
+						this.STARTPOINT.geometry.verticesNeedUpdate = true;
+						this.STARTPOINT.visible = true;
+
+					} else {
+
+						this.NEWPATH = new EditablePath([this.START, this.START, p.clone(), p.clone()]);
+						this.add(this.NEWPATH);
+						this.START = null;
+						this.STARTPOINT.visible = false;
+					}
+				} else {
+
+					this.NEWPATH.addFromRaycaster(p);
+
+					// For showing the 3D point coordinates
+					// console.log(this.NEWPATH.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
+					// console.log(this.NEWPATH.path.children.map(function(e){return e.points.map(function(e){return e.x+" "+e.y+" "+e.z})}));
+
+				}
+			}
+
+
+			if(this.editing){
+		
+				controls.enabled = true;
+
+				if ( this.INTERSECTED ) {
+
+					this.plane.position.copy( this.INTERSECTED.object.parent.points[this.INTERSECTED.index] );
+
+					this.SELECTED = null;
+
+				}
+
+				this.container.style.cursor = 'auto';		
+			}
+
+		}.bind(this);
+
+		renderer.domElement.addEventListener( 'mouseup', onSketchMouseUp, false );
+	}
+
+
+
+	EditableSketch.prototype = Object.create(THREE.Object3D.prototype);
+	EditableSketch.prototype.constructor = EditableSketch;
+
+	module.exports = EditableSketch;
+
+/***/ },
 /* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+	var Path = __webpack_require__(8);
+
+	EditablePath = function(points){
+		THREE.Object3D.call(this);
+		
+		this.points = points;
+
+		this.directionLocked = true;
+		this.ratioLocked = false;
+
+		this.handlePoints = new THREE.PointCloud(new THREE.Geometry(), new THREE.PointCloudMaterial());
+		this.handlePoints.geometry.vertices = this.points;
+		this.handlePoints.geometry.verticesNeedUpdate = true;
+
+		this.handlePoints.material.color = new THREE.Color(0x7F7F7F);
+		this.handlePoints.material.transparent = true;
+		this.handlePoints.material.opacity = 0.9;
+		this.handlePoints.material.size = 20;
+		this.handlePoints.material.sizeAttenuation = false;
+
+		this.handleLines = new THREE.Line(new THREE.Geometry(), new THREE.LineBasicMaterial());
+		this.handleLines.geometry.vertices = this.points;
+		this.handleLines.geometry.verticesNeedUpdate = true;
+
+		this.handleLines.material.color = new THREE.Color(0x7F7F7F);
+		this.handleLines.material.transparent = true;
+		this.handleLines.material.opacity = 0.9;
+
+		this.path = new Path(this.points);
+
+		this.add(this.path, this.handlePoints, this.handleLines);
+	}
+
+	EditablePath.prototype = Object.create(THREE.Object3D.prototype);
+	EditablePath.prototype.constructor = EditablePath;
+
+	EditablePath.prototype.addPoint = function(point){
+		this.path.addPoint(point);
+	}
+
+	EditablePath.prototype.addFromRaycaster = function(point){
+		this.path.addPoint(point);
+		this.handlePoints.geometry.dispose();
+		this.handleLines.geometry.dispose();
+
+	}
+
+	EditablePath.prototype.removePointAt = function(index){
+		this.path.removePointAt(index);
+	}
+
+	EditablePath.prototype.setEndPointAt = function(point, index){
+		this.path.setEndPointAt(point, index);
+	}
+
+	EditablePath.prototype.setControlPointAt = function(point, index, which, directionLocked, ratioLocked){
+		this.path.setControlPointAt(point, index, which, directionLocked, ratioLocked);
+	}
+
+	EditablePath.prototype.setFromRaycaster = function(selected, planeIntersect, offset){
+		// console.log(selected);
+		var pointIndex = Math.round(selected.index / 3),
+			controlIndex = selected.index - pointIndex * 3;
+		var newPoint = new THREE.Vector3();
+			newPoint.subVectors(planeIntersect, offset);
+		if (controlIndex === 0){
+			this.setEndPointAt(newPoint, pointIndex);
+			this.handlePoints.geometry.vertices[selected.index] = newPoint;
+			this.handleLines.geometry.vertices[selected.index] = newPoint;
+			this.handlePoints.geometry.verticesNeedUpdate = true;
+			this.handleLines.geometry.verticesNeedUpdate = true;
+			this.points[selected.index] = newPoint;
+		} else {
+			this.setControlPointAt(newPoint, pointIndex, controlIndex, this.directionLocked, this.ratioLocked);
+			this.handlePoints.geometry.vertices[selected.index] = newPoint;
+			this.handleLines.geometry.vertices[selected.index] = newPoint;
+			this.handlePoints.geometry.verticesNeedUpdate = true;
+			this.handleLines.geometry.verticesNeedUpdate = true;
+			this.points[selected.index] = newPoint;
+		}
+	}
+
+	EditablePath.prototype.raycast = function(raycaster, intersects){
+		this.handlePoints.raycast(raycaster, intersects);
+	}
+
+	module.exports = EditablePath;
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+	var ForwardDiffBezier = __webpack_require__(7);
+
+	/**
+	 * [Curve description]
+	 * @param {[type]} points [description]
+	 */
+
+	Curve = function(points){
+		THREE.Object3D.call( this );
+		this.type = "Curve";
+		this.points = points;
+
+		var curve = new THREE.Line(new THREE.Geometry(), new THREE.LineBasicMaterial());
+			curve.geometry.vertices = ForwardDiffBezier(this.points);
+			curve.geometry.verticesNeedUpdate = true;
+			curve.material.color = 0x7F7F7F;
+			curve.material.lineWidth = 1.5;
+
+		this.add(curve);
+	}
+
+	Curve.prototype = Object.create( THREE.Object3D.prototype );
+	Curve.prototype.constructor = Curve;
+
+	Curve.prototype.set = function(which, point){
+		this.points[which] = point;
+		this.children[0].geometry.vertices = ForwardDiffBezier(this.points);
+		this.children[0].geometry.verticesNeedUpdate = true;
+	}
+
+	Curve.prototype.dispose = function(){
+		this.children[0].geometry.dispose();
+		this.children[0].material.dispose();
+		this.remove(this.children[0]);
+		delete this.points;
+		delete this.vertices;
+	}
+
+	module.exports = Curve;
+
+/***/ },
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
@@ -36137,11 +36429,11 @@
 	})();
 
 /***/ },
-/* 6 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
-	var Curve = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./Curve.js\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+	var Curve = __webpack_require__(6);
 
 	Path = function(points){
 		THREE.Object3D.call( this );
@@ -36170,7 +36462,7 @@
 			this.points.splice(0, 3);
 			this.remove(this.children[0]);
 		} else if (index == this.children.length){
-			this.points.splice(this.points.length - 4, 3);
+			this.points.splice(this.points.length - 3, 3);
 			this.remove(this.children[index-1]);
 		} else {
 			this.points.splice((index - 1) * 3, 3);
@@ -36193,8 +36485,8 @@
 			move.sub(this.points[index*3]);
 			this.points[index*3-1].add(move);
 			this.points[index*3] = point;
-			this.children[index].set(3, this.points[index*3]);
-			this.children[index].set(2, this.points[index*3-1]);
+			this.children[index-1].set(3, this.points[index*3]);
+			this.children[index-1].set(2, this.points[index*3-1]);
 		} else {
 			move.sub(this.points[index*3]);
 			this.points[index*3-1].add(move);
@@ -36213,68 +36505,36 @@
 
 		if (index == 0){
 			this.points[1] = point;
-		} else if (index === len){
+			this.children[index].set(1, this.points[1]);
+		} else if (index === this.children.length){
 			this.points[index * 3 - 1] = point;
+			this.children[index-1].set(2, this.points[index*3-1]);
 		} else {
+
 			if(ratioLocked){
 				var ratio = this.points[index*3].distanceTo(this.points[index*3 - which])/this.points[index*3].distanceTo(this.points[index*3 + which]);
+				// console.log(this.points[index*3].distanceTo(this.points[index*3 - which]));
 			}
-			dist.subVectors(this.points[index*3+which], this.points[index*3]);
 			this.points[index * 3 + which] = point;
+			this.children[index - ((which == 1) ? 0 : 1)].set((which == 1 ? 1 : 2), this.points[index*3+which]);
+			dist.subVectors(this.points[index*3+which], this.points[index*3]);
+			
 			if(directionLocked){
+
 				this.points[index * 3 - which].subVectors(this.points[index*3], dist);
+
 				if(ratioLocked){
 					this.points[index * 3 - which].multiplyScalar(ratio);
+					// console.log(this.points[index * 3 - which]);
 				}
+				this.children[index - ((which == 1) ? 1 : 0)].set((which == 1 ? 2 : 1), this.points[index*3-which]);
 			}
 		}
 	}
 
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
 
-	var THREE = __webpack_require__(1);
-	var ForwardDiffBezier = __webpack_require__(5);
 
-	/**
-	 * [Curve description]
-	 * @param {[type]} points [description]
-	 */
-
-	Curve = function(points){
-		THREE.Object3D.call( this );
-		this.type = "Curve";
-		this.points = points;
-		console.log(points);
-
-		var curve = new THREE.Line(new THREE.Geometry(), new THREE.LineBasicMaterial());
-			curve.geometry.vertices = ForwardDiffBezier(this.points);
-			curve.geometry.verticesNeedUpdate = true;
-			curve.material.color = 0x7F7F7F;
-			curve.material.lineWidth = 1.5;
-
-		this.add(curve);
-	}
-
-	Curve.prototype = Object.create( THREE.Object3D.prototype );
-	Curve.prototype.constructor = Curve;
-
-	Curve.prototype.set = function(which, point){
-		this.points[which] = point;
-		this.children[0].geometry.vertices = ForwardDiffBezier(this.points);
-		this.children[0].geometry.verticesNeedUpdate = true;
-	}
-
-	Curve.prototype.dispose = function(){
-		this.children[0].geometry.dispose();
-		this.children[0].material.dispose();
-		this.remove(this.children[0]);
-		delete this.points;
-		delete this.vertices;
-	}
-
-	module.exports = Curve;
+	module.exports = Path;
 
 /***/ }
 /******/ ]);

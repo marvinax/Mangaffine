@@ -1,5 +1,6 @@
 var THREE = require('three');
 var Trackball = require('three.trackball');
+var EditableSketch = require('./EditableSketch.js');
 
 module.exports = (function(){
 	$('#viewport').height(window.innerHeight).width(window.innerWidth);
@@ -53,7 +54,6 @@ module.exports = (function(){
 			})
 		},
 
-
 		initRenderer : function(canvasElement, width, height){
 			rndr = new THREE.WebGLRenderer({
 				alpha:true,
@@ -66,40 +66,6 @@ module.exports = (function(){
 			rndr.setSize(width, height);
 			rndr.setClearColor( 0xfafafa, 1);
 			rndr.sortObjects = false;
-		},
-
-		initEditingPlane : function(){
-			editingPlane = new THREE.Mesh(
-				new THREE.PlaneBufferGeometry( 100, 100),
-				new THREE.MeshBasicMaterial({
-					color : 0xDDDDDD,
-					transparent : true,
-					opacity : 0.2,
-					visible : false
-				})
-			);
-		},
-
-		initRaycaster : function(){
-			raycaster = new THREE.Raycaster();
-			mouse = new THREE.Vector2(0, 0);
-
-			window.addEventListener("mousedown", function(e){
-				console.log('asd');
-				mouseDown = true;
-				mouse.x = ( e.clientX / rndr.domElement.width ) * 4 - 1;
-				mouse.y = - ( e.clientY / rndr.domElement.height ) * 4 + 1;
-			})
-
-			$('#viewport').mouseup(function(e){
-				mouseDown = false;
-			})
-
-			window.addEventListener("mousemove", function(e){
-				mouse.x = ( e.clientX / rndr.domElement.width ) * 4 - 1;
-				mouse.y = - ( e.clientY / rndr.domElement.height ) * 4 + 1;
-			}, false);
-
 		},
 
 		initControl : function(canvasElement){
@@ -126,36 +92,16 @@ module.exports = (function(){
 			scene = new THREE.Scene();
 			scene.fog = new THREE.FogExp2( 0xFFFFFF, 0.003 );
 
-			sketch = new THREE.Object3D();
-			sketch.up = camera.up;
-			sketch.lookAt(camera.position);
-
 			scene.add(camera);
 			scene.add(ambient);
+		},
+
+		initSketch : function(rndr, scene, camera, ctrl){
+			sketch = new EditableSketch(rndr, scene, camera, ctrl);
 			scene.add(sketch);
 		},
 
 		render : function(timestamp){
-			raycaster.setFromCamera(mouse, camera);
-
-			if(editing){
-				intersects = raycaster.intersectObject( sketch, true );
-				if(intersects.length > 0 ){
-
-					mouseOnHover = intersects.some(function(e){
-						return e.object.type == "PointCloud"
-					});
-
-				} else
-					mouseOnHover = false;
-
-				if(mouseOnHover){
-					console.log(intersects.filter(function(e){
-						return e.object.type === "PointCloud"
-					}).map(function(e){return e.index}));
-				}
-
-			}
 			rndr.render(scene, camera);
 		},
 
@@ -168,7 +114,7 @@ module.exports = (function(){
 			});
 		},
 
-		init : function(canvasElement, raycast){
+		init : function(canvasElement){
 			var width = parseInt(canvasElement.style.width, 10),
 				height = parseInt(canvasElement.style.height, 10);
 
@@ -176,8 +122,7 @@ module.exports = (function(){
 			this.initScene(width, height);
 			this.initRenderer(canvasElement, width, height);
 			this.initControl(canvasElement);
-			this.initRaycaster();
-			this.initEditingPlane();
+			this.initSketch(rndr, scene, camera, ctrl);
 			this.initCommand();
 
 			this.rndr = rndr;
@@ -185,7 +130,6 @@ module.exports = (function(){
 			this.scene = scene;
 			this.ctrl = ctrl;
 			this.canvasElement = canvasElement;
-			this.raycaster = raycaster;
 			this.sketch = sketch;
 
 			this.render();

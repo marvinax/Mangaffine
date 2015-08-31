@@ -10,7 +10,6 @@ Curve = function(points){
 	THREE.Object3D.call( this );
 	this.type = "Curve";
 	this.points = points;
-	console.log(points);
 
 	var curve = new THREE.Line(new THREE.Geometry(), new THREE.LineBasicMaterial());
 		curve.geometry.vertices = ForwardDiffBezier(this.points);

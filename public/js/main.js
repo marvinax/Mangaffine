@@ -1,7 +1,8 @@
 var THREE = require('three');
 var View = require('./View.js');
-var EditableCurve = require('./EditableCurve.js');
+var Curve = require('./Curve.js');
 var Path = require('./Path.js');
+var EditablePath = require('./EditablePath.js');
 
 var line1 = new THREE.LineBasicMaterial({
 		opacity : 0.7,
@@ -43,13 +44,19 @@ window.onload = function() {
 		new THREE.Vector3(-10, 0, 0),
 		new THREE.Vector3(-10, -10, 0),
 		new THREE.Vector3(0, -10, 0),
-		new THREE.Vector3(0, 0, 0),
-		new THREE.Vector3(0, 10, 0),
-		new THREE.Vector3(10, 10, 0),
-		new THREE.Vector3(10, 0, 0)
+		new THREE.Vector3(0, 0, 0)
 	];
 	var path = new EditablePath(points);
 	View.add(path, "docs");
-	// curve.set(1, new THREE.Vector3(0, 20, 0));
+
+	path.addPoint(new THREE.Vector3(10, 0, 0));
+	path.removePointAt(2);
+	path.addPoint(new THREE.Vector3(10, 0, 0));
+	path.setEndPointAt(new THREE.Vector3(-20, 0, 0), 0);
+	path.setEndPointAt(new THREE.Vector3(20, 0, 0), 2);
+	path.setControlPointAt(new THREE.Vector3(-20, -20, 0), 1, 1);
+	path.setControlPointAt(new THREE.Vector3(0, -40, 0), 1, -1);
+	path.setControlPointAt(new THREE.Vector3(10, -15, 15), 1, -1, true, true);
+	path.setControlPointAt(new THREE.Vector3(20, 15, 0), 2);
 	// console.log(View.sketch.children)
 }
