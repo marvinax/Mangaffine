@@ -49,6 +49,7 @@
 	var Curve = __webpack_require__(6);
 	var Path = __webpack_require__(8);
 	var EditablePath = __webpack_require__(5);
+	var TextLabelCloud = __webpack_require__(12);
 
 	var line1 = new THREE.LineBasicMaterial({
 			opacity : 0.7,
@@ -104,7 +105,9 @@
 		path.setControlPointAt(new THREE.Vector3(0, -40, 0), 1, -1);
 		path.setControlPointAt(new THREE.Vector3(10, -15, 15), 1, -1, true, true);
 		path.setControlPointAt(new THREE.Vector3(20, 15, 0), 2);
-		// console.log(View.sketch.children)
+		
+		var labels = new TextLabelCloud(points);
+		View.add(labels, 'labels');
 	}
 
 /***/ },
@@ -36236,6 +36239,7 @@
 
 	var THREE = __webpack_require__(1);
 	var Path = __webpack_require__(8);
+	var LabelCloud = __webpack_require__(12);
 
 	EditablePath = function(points){
 		THREE.Object3D.call(this);
@@ -36513,7 +36517,6 @@
 
 			if(ratioLocked){
 				var ratio = this.points[index*3].distanceTo(this.points[index*3 - which])/this.points[index*3].distanceTo(this.points[index*3 + which]);
-				// console.log(this.points[index*3].distanceTo(this.points[index*3 - which]));
 			}
 			this.points[index * 3 + which] = point;
 			this.children[index - ((which == 1) ? 0 : 1)].set((which == 1 ? 1 : 2), this.points[index*3+which]);
@@ -36525,7 +36528,6 @@
 
 				if(ratioLocked){
 					this.points[index * 3 - which].multiplyScalar(ratio);
-					// console.log(this.points[index * 3 - which]);
 				}
 				this.children[index - ((which == 1) ? 1 : 0)].set((which == 1 ? 2 : 1), this.points[index*3-which]);
 			}
@@ -36535,6 +36537,61 @@
 
 
 	module.exports = Path;
+
+/***/ },
+/* 9 */,
+/* 10 */,
+/* 11 */,
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+
+	TextLabelCloud = function(points){
+		THREE.Object3D.call(this);
+
+		this.points = points;
+		console.log(this.points);
+		this.points.forEach(function(e, i){
+			this.add(this.makeTextLabel(i, e));
+		}.bind(this))
+
+	}
+
+	TextLabelCloud.prototype = Object.create(THREE.Object3D.prototype);
+	TextLabelCloud.prototype.constructor = TextLabelCloud;
+
+	TextLabelCloud.prototype.updatePoints = function(){
+		this.removeAll();
+	}
+
+	TextLabelCloud.prototype.addTextLabel = function(message, point){
+		this.add(this.makeTextLabel(message, point));
+	}
+
+	TextLabelCloud.prototype.makeTextLabel = function( message, point ) {
+
+		var canvas = document.createElement('canvas');
+		var context = canvas.getContext('2d');
+		var metrics = context.measureText( message );
+		var textWidth = metrics.width;
+
+		context.fillStyle = "rgba(0, 0, 0, 1.0)";
+		context.font = "lighter 40px Helvetica Neue"
+		context.fillText( message, textWidth+150, 40*1.4);
+		
+		// canvas contents will be used for a texture
+		var texture = new THREE.Texture(canvas) 
+		texture.needsUpdate = true;
+
+		var spriteMaterial = new THREE.SpriteMaterial( { map: texture} );
+		var sprite = new THREE.Sprite( spriteMaterial );
+		sprite.scale.set(10,-5,-1.0);
+		sprite.position.copy(point);
+		return sprite;	
+	}
+
+	module.exports = TextLabelCloud;
 
 /***/ }
 /******/ ]);

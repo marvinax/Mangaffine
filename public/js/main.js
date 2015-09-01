@@ -3,6 +3,7 @@ var View = require('./View.js');
 var Curve = require('./Curve.js');
 var Path = require('./Path.js');
 var EditablePath = require('./EditablePath.js');
+var TextLabelCloud = require('./TextLabelCloud.js');
 
 var line1 = new THREE.LineBasicMaterial({
 		opacity : 0.7,
@@ -58,5 +59,7 @@ window.onload = function() {
 	path.setControlPointAt(new THREE.Vector3(0, -40, 0), 1, -1);
 	path.setControlPointAt(new THREE.Vector3(10, -15, 15), 1, -1, true, true);
 	path.setControlPointAt(new THREE.Vector3(20, 15, 0), 2);
-	// console.log(View.sketch.children)
+	
+	var labels = new TextLabelCloud(points);
+	View.add(labels, 'labels');
 }

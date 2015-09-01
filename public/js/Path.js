@@ -79,7 +79,6 @@ Path.prototype.setControlPointAt = function(point, index, which, directionLocked
 
 		if(ratioLocked){
 			var ratio = this.points[index*3].distanceTo(this.points[index*3 - which])/this.points[index*3].distanceTo(this.points[index*3 + which]);
-			// console.log(this.points[index*3].distanceTo(this.points[index*3 - which]));
 		}
 		this.points[index * 3 + which] = point;
 		this.children[index - ((which == 1) ? 0 : 1)].set((which == 1 ? 1 : 2), this.points[index*3+which]);
@@ -91,7 +90,6 @@ Path.prototype.setControlPointAt = function(point, index, which, directionLocked
 
 			if(ratioLocked){
 				this.points[index * 3 - which].multiplyScalar(ratio);
-				// console.log(this.points[index * 3 - which]);
 			}
 			this.children[index - ((which == 1) ? 1 : 0)].set((which == 1 ? 2 : 1), this.points[index*3-which]);
 		}

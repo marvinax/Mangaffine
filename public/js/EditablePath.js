@@ -1,5 +1,6 @@
 var THREE = require('three');
 var Path = require('./Path.js');
+var LabelCloud = require('./TextLabelCloud.js');
 
 EditablePath = function(points){
 	THREE.Object3D.call(this);
