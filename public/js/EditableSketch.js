@@ -16,7 +16,7 @@ EditableSketch = function(renderer, scene, camera, controls, callback){
 	this.offset = new THREE.Vector3();
 
 	this.editing = false;
-	this.adding = false;
+	this.adding = true;
 
 	this.mouse = new THREE.Vector3();
 
@@ -34,9 +34,6 @@ EditableSketch = function(renderer, scene, camera, controls, callback){
 	var onSketchMouseMove = function( event ) {
 
 		event.preventDefault();
-
-
-
 
 		this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 		this.mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;

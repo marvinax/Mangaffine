@@ -28,11 +28,11 @@ EditablePath = function(points){
 	this.handleLines.material.transparent = true;
 	this.handleLines.material.opacity = 0.9;
 
-	this.path = new Path(this.points);
+	this.path = new Path(points);
 
-	this.labels = new LabelCloud(this.points);
+	this.labels = new LabelCloud(points);
 
-	this.add(this.path, this.handlePoints, this.handleLines);
+	this.add(this.path, this.handlePoints, this.handleLines, this.labels);
 }
 
 EditablePath.prototype = Object.create(THREE.Object3D.prototype);
@@ -40,25 +40,25 @@ EditablePath.prototype.constructor = EditablePath;
 
 EditablePath.prototype.addPoint = function(point){
 	this.path.addPoint(point);
+	this.labels.addIndexLabel(point);
 }
 
 EditablePath.prototype.addFromRaycaster = function(point){
-	
-	// this.points.push(point);
-	// this.labels.addTextLabel(this.points.length ? 0 : this.points.length-1, point);
 
 	this.path.addPoint(point);
+	this.labels.addIndexLabel(point);
 	this.handlePoints.geometry.dispose();
 	this.handleLines.geometry.dispose();
 }
 
 EditablePath.prototype.removePointAt = function(index){
 	this.path.removePointAt(index);
+	this.labels.removeLabelAt(index);
 }
 
 EditablePath.prototype.setEndPointAt = function(point, index){
-	// this.points[index*3].copy(point);
 	this.path.setEndPointAt(point, index);
+	this.labels.setLabelPositionAt(point, index);
 }
 
 EditablePath.prototype.setControlPointAt = function(point, index, which, directionLocked, ratioLocked){
@@ -67,7 +67,7 @@ EditablePath.prototype.setControlPointAt = function(point, index, which, directi
 }
 
 EditablePath.prototype.setFromRaycaster = function(selected, planeIntersect, offset){
-	// console.log(selected);
+	
 	var pointIndex = Math.round(selected.index / 3),
 		controlIndex = selected.index - pointIndex * 3;
 	var newPoint = new THREE.Vector3();

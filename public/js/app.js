@@ -97,17 +97,14 @@
 		View.add(path, "docs");
 
 		path.addPoint(new THREE.Vector3(10, 0, 0));
-		path.removePointAt(2);
-		path.addPoint(new THREE.Vector3(10, 0, 0));
+		// path.removePointAt(2);
+		// path.addPoint(new THREE.Vector3(10, 0, 0));
 		path.setEndPointAt(new THREE.Vector3(-20, 0, 0), 0);
 		path.setEndPointAt(new THREE.Vector3(20, 0, 0), 2);
 		path.setControlPointAt(new THREE.Vector3(-20, -20, 0), 1, 1);
 		path.setControlPointAt(new THREE.Vector3(0, -40, 0), 1, -1);
 		path.setControlPointAt(new THREE.Vector3(10, -15, 15), 1, -1, true, true);
 		path.setControlPointAt(new THREE.Vector3(20, 15, 0), 2);
-		
-		var labels = new TextLabelCloud(points);
-		View.add(labels, 'labels');
 	}
 
 /***/ },
@@ -36051,7 +36048,7 @@
 		this.offset = new THREE.Vector3();
 
 		this.editing = false;
-		this.adding = false;
+		this.adding = true;
 
 		this.mouse = new THREE.Vector3();
 
@@ -36069,9 +36066,6 @@
 		var onSketchMouseMove = function( event ) {
 
 			event.preventDefault();
-
-
-
 
 			this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 			this.mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
@@ -36267,11 +36261,11 @@
 		this.handleLines.material.transparent = true;
 		this.handleLines.material.opacity = 0.9;
 
-		this.path = new Path(this.points);
+		this.path = new Path(points);
 
-		this.labels = new LabelCloud(this.points);
+		this.labels = new LabelCloud(points);
 
-		this.add(this.path, this.handlePoints, this.handleLines);
+		this.add(this.path, this.handlePoints, this.handleLines, this.labels);
 	}
 
 	EditablePath.prototype = Object.create(THREE.Object3D.prototype);
@@ -36279,25 +36273,25 @@
 
 	EditablePath.prototype.addPoint = function(point){
 		this.path.addPoint(point);
+		this.labels.addIndexLabel(point);
 	}
 
 	EditablePath.prototype.addFromRaycaster = function(point){
-		
-		// this.points.push(point);
-		// this.labels.addTextLabel(this.points.length ? 0 : this.points.length-1, point);
 
 		this.path.addPoint(point);
+		this.labels.addIndexLabel(point);
 		this.handlePoints.geometry.dispose();
 		this.handleLines.geometry.dispose();
 	}
 
 	EditablePath.prototype.removePointAt = function(index){
 		this.path.removePointAt(index);
+		this.labels.removeLabelAt(index);
 	}
 
 	EditablePath.prototype.setEndPointAt = function(point, index){
-		// this.points[index*3].copy(point);
 		this.path.setEndPointAt(point, index);
+		this.labels.setLabelPositionAt(point, index);
 	}
 
 	EditablePath.prototype.setControlPointAt = function(point, index, which, directionLocked, ratioLocked){
@@ -36306,7 +36300,7 @@
 	}
 
 	EditablePath.prototype.setFromRaycaster = function(selected, planeIntersect, offset){
-		// console.log(selected);
+		
 		var pointIndex = Math.round(selected.index / 3),
 			controlIndex = selected.index - pointIndex * 3;
 		var newPoint = new THREE.Vector3();
@@ -36558,31 +36552,43 @@
 
 	TextLabelCloud = function(points){
 		THREE.Object3D.call(this);
+		var _this = this;
+
 
 		this.canvas = document.createElement('canvas');
 		this.context = this.canvas.getContext('2d');
 
-		this.points = points;
-
-		this.points.forEach(function(e, i){
-			this.add(this.makeTextLabel(i, e));
-		}.bind(this))
+		points.forEach(function(e, i){
+			if(i % 3 == 0)
+				_this.addLabel(i / 3, e);
+		})
 
 	}
 
 	TextLabelCloud.prototype = Object.create(THREE.Object3D.prototype);
 	TextLabelCloud.prototype.constructor = TextLabelCloud;
 
-	TextLabelCloud.prototype.updatePoints = function(){
-		this.removeAll();
-	}
-
-	TextLabelCloud.prototype.addTextLabel = function(message, point){
+	TextLabelCloud.prototype.addLabel = function(message, point){
 		this.add(this.makeTextLabel(message, point));
 	}
 
-	TextLabelCloud.prototype.makeTextLabel = function( message, point ) {
+	TextLabelCloud.prototype.removeLabelAt = function(index){
+		var len = this.children.length;
+		for(var i = len - 1; i > index; i--){
+			this.children[i-1].position.copy(this.children[i].position);
+		}
+		this.remove(this.children[len - 1]);
+	}
 
+	TextLabelCloud.prototype.addIndexLabel = function(point){
+		this.add(this.makeTextLabel(this.children.length, point));
+	}
+
+	TextLabelCloud.prototype.setLabelPositionAt = function(point, index){
+			this.children[index].position.copy(point);
+	}
+
+	TextLabelCloud.prototype.makeTextLabel = function( message, point ) {
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
 
 		var metrics = this.context.measureText( message );
@@ -36598,8 +36604,9 @@
 		var texture = new THREE.Texture();
 		texture.image = image;
 		texture.needsUpdate = true;
-
+		texture.minFilter = THREE.LinearFilter;
 		var spriteMaterial = new THREE.SpriteMaterial( { map: texture} );
+
 		var sprite = new THREE.Sprite( spriteMaterial );
 		sprite.scale.set(10,-5,-1.0);
 		sprite.position.copy(point);
