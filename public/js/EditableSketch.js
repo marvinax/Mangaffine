@@ -1,7 +1,7 @@
 var THREE = require('three');
 var EditablePath = require('./EditablePath.js');
 
-EditableSketch = function(renderer, scene, camera, controls, callback){
+EditableSketch = function(renderer, scene, camera, controls, commands){
 	THREE.Object3D.call(this);
 
 	this.plane = new THREE.Mesh(
@@ -15,8 +15,8 @@ EditableSketch = function(renderer, scene, camera, controls, callback){
 	this.container = renderer.domElement.parentNode;
 	this.offset = new THREE.Vector3();
 
-	this.editing = false;
-	this.adding = true;
+	this.editing = true;
+	this.adding = false;
 
 	this.mouse = new THREE.Vector3();
 
@@ -41,8 +41,6 @@ EditableSketch = function(renderer, scene, camera, controls, callback){
 		this.raycaster.setFromCamera( this.mouse, camera );
 
 		if(this.adding){
-			// do nothing if mouse button is not pressed.
-			// 
 		}
 
 		if(this.editing){
@@ -92,7 +90,7 @@ EditableSketch = function(renderer, scene, camera, controls, callback){
 				// console.log(intersects.map(function(e){return e.index}));
 				controls.enabled = false;
 
-				if(intersects[0].index == 0) {
+				if(intersects.length ==2 && intersects[0].index == 0) {
 					this.SELECTED = intersects[ 1 ];
 				} else if (intersects.length == 3){
 					// for non-end point over the path.

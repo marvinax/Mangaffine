@@ -2,7 +2,7 @@ var THREE = require('three');
 var Path = require('./Path.js');
 var LabelCloud = require('./TextLabelCloud.js');
 
-EditablePath = function(points){
+EditablePath = function(points, name){
 	THREE.Object3D.call(this);
 	
 	this.points = points;
@@ -32,7 +32,9 @@ EditablePath = function(points){
 
 	this.labels = new LabelCloud(points);
 
-	this.add(this.path, this.handlePoints, this.handleLines, this.labels);
+	this.nameLabel = new LabelCloud([points[0]], [name]);
+
+	this.add(this.path, this.handlePoints, this.handleLines, this.labels, this.nameLabel);
 }
 
 EditablePath.prototype = Object.create(THREE.Object3D.prototype);
@@ -59,10 +61,15 @@ EditablePath.prototype.removePointAt = function(index){
 EditablePath.prototype.setEndPointAt = function(point, index){
 	this.path.setEndPointAt(point, index);
 	this.labels.setLabelPositionAt(point, index);
+
+	if(index == 0){
+		var p1 = (new THREE.Vector3()).copy(point);
+		p1.setX(p1.x + 1);
+		this.nameLabel.setLabelPositionAt(p1, index);
+	}
 }
 
 EditablePath.prototype.setControlPointAt = function(point, index, which, directionLocked, ratioLocked){
-	// this.points[index*3+which].copy(point);
 	this.path.setControlPointAt(point, index, which, directionLocked, ratioLocked);
 }
 
@@ -73,10 +80,8 @@ EditablePath.prototype.setFromRaycaster = function(selected, planeIntersect, off
 	var newPoint = new THREE.Vector3();
 		newPoint.subVectors(planeIntersect, offset);
 
-	this.points[selected.index].copy(newPoint);
-
 	if (controlIndex === 0){
-		
+
 		this.setEndPointAt(newPoint, pointIndex);
 	
 	} else {

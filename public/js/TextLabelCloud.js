@@ -1,16 +1,17 @@
 var THREE = require('three');
 
-TextLabelCloud = function(points){
+TextLabelCloud = function(points, names){
 	THREE.Object3D.call(this);
 	var _this = this;
 
 
 	this.canvas = document.createElement('canvas');
+	this.canvas.width = 600;
 	this.context = this.canvas.getContext('2d');
 
 	points.forEach(function(e, i){
 		if(i % 3 == 0)
-			_this.addLabel(i / 3, e);
+			_this.addLabel(names ? names[i] : i / 3, e);
 	})
 
 }
@@ -44,9 +45,10 @@ TextLabelCloud.prototype.makeTextLabel = function( message, point ) {
 	var metrics = this.context.measureText( message );
 	var textWidth = metrics.width;
 
+	this.canvas.width = (textWidth+320)*2;
 	this.context.fillStyle = "rgba(0, 0, 0, 1.0)";
 	this.context.font = "lighter 40px Helvetica Neue"
-	this.context.fillText( message, textWidth+150, 40*1.4);
+	this.context.fillText( message, textWidth+320, 40*1.4);
 
 	var image = new Image();
 	image.src = this.canvas.toDataURL();
@@ -58,7 +60,7 @@ TextLabelCloud.prototype.makeTextLabel = function( message, point ) {
 	var spriteMaterial = new THREE.SpriteMaterial( { map: texture} );
 
 	var sprite = new THREE.Sprite( spriteMaterial );
-	sprite.scale.set(10,-5,-1.0);
+	sprite.scale.set((textWidth+320)*2/300*10, 5, 1.5);
 	sprite.position.copy(point);
 	return sprite;	
 }
