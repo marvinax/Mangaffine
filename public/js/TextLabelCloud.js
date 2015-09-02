@@ -3,8 +3,11 @@ var THREE = require('three');
 TextLabelCloud = function(points){
 	THREE.Object3D.call(this);
 
+	this.canvas = document.createElement('canvas');
+	this.context = this.canvas.getContext('2d');
+
 	this.points = points;
-	console.log(this.points);
+
 	this.points.forEach(function(e, i){
 		this.add(this.makeTextLabel(i, e));
 	}.bind(this))
@@ -24,17 +27,20 @@ TextLabelCloud.prototype.addTextLabel = function(message, point){
 
 TextLabelCloud.prototype.makeTextLabel = function( message, point ) {
 
-	var canvas = document.createElement('canvas');
-	var context = canvas.getContext('2d');
-	var metrics = context.measureText( message );
+	this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
+
+	var metrics = this.context.measureText( message );
 	var textWidth = metrics.width;
 
-	context.fillStyle = "rgba(0, 0, 0, 1.0)";
-	context.font = "lighter 40px Helvetica Neue"
-	context.fillText( message, textWidth+150, 40*1.4);
+	this.context.fillStyle = "rgba(0, 0, 0, 1.0)";
+	this.context.font = "lighter 40px Helvetica Neue"
+	this.context.fillText( message, textWidth+150, 40*1.4);
+
+	var image = new Image();
+	image.src = this.canvas.toDataURL();
 	
-	// canvas contents will be used for a texture
-	var texture = new THREE.Texture(canvas) 
+	var texture = new THREE.Texture();
+	texture.image = image;
 	texture.needsUpdate = true;
 
 	var spriteMaterial = new THREE.SpriteMaterial( { map: texture} );

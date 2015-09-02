@@ -36051,7 +36051,7 @@
 		this.offset = new THREE.Vector3();
 
 		this.editing = false;
-		this.adding = true;
+		this.adding = false;
 
 		this.mouse = new THREE.Vector3();
 
@@ -36269,6 +36269,8 @@
 
 		this.path = new Path(this.points);
 
+		this.labels = new LabelCloud(this.points);
+
 		this.add(this.path, this.handlePoints, this.handleLines);
 	}
 
@@ -36280,10 +36282,13 @@
 	}
 
 	EditablePath.prototype.addFromRaycaster = function(point){
+		
+		// this.points.push(point);
+		// this.labels.addTextLabel(this.points.length ? 0 : this.points.length-1, point);
+
 		this.path.addPoint(point);
 		this.handlePoints.geometry.dispose();
 		this.handleLines.geometry.dispose();
-
 	}
 
 	EditablePath.prototype.removePointAt = function(index){
@@ -36291,10 +36296,12 @@
 	}
 
 	EditablePath.prototype.setEndPointAt = function(point, index){
+		// this.points[index*3].copy(point);
 		this.path.setEndPointAt(point, index);
 	}
 
 	EditablePath.prototype.setControlPointAt = function(point, index, which, directionLocked, ratioLocked){
+		// this.points[index*3+which].copy(point);
 		this.path.setControlPointAt(point, index, which, directionLocked, ratioLocked);
 	}
 
@@ -36304,21 +36311,23 @@
 			controlIndex = selected.index - pointIndex * 3;
 		var newPoint = new THREE.Vector3();
 			newPoint.subVectors(planeIntersect, offset);
+
+		this.points[selected.index].copy(newPoint);
+
 		if (controlIndex === 0){
+			
 			this.setEndPointAt(newPoint, pointIndex);
-			this.handlePoints.geometry.vertices[selected.index] = newPoint;
-			this.handleLines.geometry.vertices[selected.index] = newPoint;
-			this.handlePoints.geometry.verticesNeedUpdate = true;
-			this.handleLines.geometry.verticesNeedUpdate = true;
-			this.points[selected.index] = newPoint;
+		
 		} else {
+			
 			this.setControlPointAt(newPoint, pointIndex, controlIndex, this.directionLocked, this.ratioLocked);
-			this.handlePoints.geometry.vertices[selected.index] = newPoint;
-			this.handleLines.geometry.vertices[selected.index] = newPoint;
-			this.handlePoints.geometry.verticesNeedUpdate = true;
-			this.handleLines.geometry.verticesNeedUpdate = true;
-			this.points[selected.index] = newPoint;
 		}
+
+		this.handlePoints.geometry.vertices[selected.index] = newPoint;
+		this.handleLines.geometry.vertices[selected.index] = newPoint;
+		this.handlePoints.geometry.verticesNeedUpdate = true;
+		this.handleLines.geometry.verticesNeedUpdate = true;
+		this.points[selected.index] = newPoint;
 	}
 
 	EditablePath.prototype.raycast = function(raycaster, intersects){
@@ -36550,8 +36559,11 @@
 	TextLabelCloud = function(points){
 		THREE.Object3D.call(this);
 
+		this.canvas = document.createElement('canvas');
+		this.context = this.canvas.getContext('2d');
+
 		this.points = points;
-		console.log(this.points);
+
 		this.points.forEach(function(e, i){
 			this.add(this.makeTextLabel(i, e));
 		}.bind(this))
@@ -36571,17 +36583,20 @@
 
 	TextLabelCloud.prototype.makeTextLabel = function( message, point ) {
 
-		var canvas = document.createElement('canvas');
-		var context = canvas.getContext('2d');
-		var metrics = context.measureText( message );
+		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
+
+		var metrics = this.context.measureText( message );
 		var textWidth = metrics.width;
 
-		context.fillStyle = "rgba(0, 0, 0, 1.0)";
-		context.font = "lighter 40px Helvetica Neue"
-		context.fillText( message, textWidth+150, 40*1.4);
+		this.context.fillStyle = "rgba(0, 0, 0, 1.0)";
+		this.context.font = "lighter 40px Helvetica Neue"
+		this.context.fillText( message, textWidth+150, 40*1.4);
+
+		var image = new Image();
+		image.src = this.canvas.toDataURL();
 		
-		// canvas contents will be used for a texture
-		var texture = new THREE.Texture(canvas) 
+		var texture = new THREE.Texture();
+		texture.image = image;
 		texture.needsUpdate = true;
 
 		var spriteMaterial = new THREE.SpriteMaterial( { map: texture} );

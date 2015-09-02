@@ -16,7 +16,7 @@ EditableSketch = function(renderer, scene, camera, controls, callback){
 	this.offset = new THREE.Vector3();
 
 	this.editing = false;
-	this.adding = true;
+	this.adding = false;
 
 	this.mouse = new THREE.Vector3();
 
