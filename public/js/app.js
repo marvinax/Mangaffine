@@ -46,18 +46,21 @@
 
 	var THREE = __webpack_require__(1);
 	var View = __webpack_require__(2);
+	var Command = __webpack_require__(10);
+
 	var EditablePath = __webpack_require__(5);
 
 	window.onload = function() {
 		View.init($('#viewport').get(0));
-
+		Command.init(View);
+		console.log(Command);
 		var points = [
 			new THREE.Vector3(-10, 0, 0),
 			new THREE.Vector3(-10, -10, 0),
 			new THREE.Vector3(0, -10, 0),
 			new THREE.Vector3(0, 0, 0)
 		];
-		var path = new EditablePath(points, "Now you could assign curve a name.");
+		var path = new EditablePath(points, "Zygomatic");
 		View.add(path);
 
 		path.addPoint(new THREE.Vector3(10, 0, 0));
@@ -35273,18 +35276,6 @@
 				sketch.remove(graphic)
 			},
 
-			initCommand : function(){
-				$('#command-line').on("keydown", function(e){
-					if (e.which === 13) {
-						var command = $(this).val().split(" ")
-						if (command[0] === "edit"){
-							toggleEditing();
-						}
-						$(this).val('');
-					}
-				})
-			},
-
 			initRenderer : function(canvasElement, width, height){
 				rndr = new THREE.WebGLRenderer({
 					alpha:true,
@@ -35354,7 +35345,6 @@
 				this.initRenderer(canvasElement, width, height);
 				this.initControl(canvasElement);
 				this.initSketch(rndr, scene, camera, ctrl);
-				this.initCommand();
 
 				this.rndr = rndr;
 				this.camera = camera;
@@ -36033,6 +36023,7 @@
 
 			event.preventDefault();
 
+
 			this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 			this.mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
@@ -36196,8 +36187,8 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
-	var Path = __webpack_require__(8);
-	var LabelCloud = __webpack_require__(12);
+	var Path = __webpack_require__(6);
+	var LabelCloud = __webpack_require__(9);
 
 	EditablePath = function(points, name){
 		THREE.Object3D.call(this);
@@ -36304,112 +36295,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
-	var ForwardDiffBezier = __webpack_require__(7);
-
-	/**
-	 * [Curve description]
-	 * @param {[type]} points [description]
-	 */
-
-	Curve = function(points){
-		THREE.Object3D.call( this );
-		this.type = "Curve";
-		this.points = points;
-
-		var curve = new THREE.Line(new THREE.Geometry(), new THREE.LineBasicMaterial());
-			curve.geometry.vertices = ForwardDiffBezier(this.points);
-			curve.geometry.verticesNeedUpdate = true;
-			curve.material.color = 0x7F7F7F;
-			curve.material.lineWidth = 1.5;
-
-		this.add(curve);
-	}
-
-	Curve.prototype = Object.create( THREE.Object3D.prototype );
-	Curve.prototype.constructor = Curve;
-
-	Curve.prototype.set = function(which, point){
-		this.points[which] = point;
-		this.children[0].geometry.vertices = ForwardDiffBezier(this.points);
-		this.children[0].geometry.verticesNeedUpdate = true;
-	}
-
-	Curve.prototype.dispose = function(){
-		this.children[0].geometry.dispose();
-		this.children[0].material.dispose();
-		this.remove(this.children[0]);
-		delete this.points;
-		delete this.vertices;
-	}
-
-	module.exports = Curve;
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(1);
-
-	module.exports = (function(){
-		var SCALE = 5,
-			STEPS = 1<<SCALE;
-
-		var f			= new THREE.Vector3(),
-			fd			= new THREE.Vector3(),
-			fdd			= new THREE.Vector3(),
-			fddd		= new THREE.Vector3(),
-			fdd_per_2	= new THREE.Vector3(),
-			fddd_per_2	= new THREE.Vector3(),
-			fddd_per_6	= new THREE.Vector3();
-		var t			= 1.0 / STEPS;
-		var temp 		= t * t;
-
-		function initComponent(which, p1, p2, p3, p4){
-			var p_1 = p1[which],
-				p_2 = p2[which],
-				p_3 = p3[which],
-				p_4 = p4[which];
-
-			f[which]			= p_1;
-			fd[which] 			= 3 * t * ( p_2 - p_1 );
-			fdd_per_2[which]	= 3 * temp * ( p_1 + p_3 - 2* p_2 );
-			fddd_per_2[which]	= 3 * temp * t * ( 3 * ( p_2 - p_3 ) + p_4 - p_1 );
-			fddd[which]			= 2 * fddd_per_2[which];
-			fdd[which]			= 2 * fdd_per_2[which];
-			fddd_per_6[which]	= fddd_per_2[which] / 3;
-		}
-
-		function updateComponent(which){
-			f[which]			+= fd[which] + fdd_per_2[which] + fddd_per_6[which];
-			fd[which]			+= fdd[which] + fddd_per_2[which];
-			fdd[which]			+= fddd[which];
-			fdd_per_2[which]	+= fddd_per_2[which];
-		}
-
-		function bezierCurve(points){
-			var vertices = [];
-			initComponent("x", points[0], points[1], points[2], points[3]);
-			initComponent("y", points[0], points[1], points[2], points[3]);
-			initComponent("z", points[0], points[1], points[2], points[3]);
-			for(var i = 0; i <= STEPS; i++){
-				vertices.push(f.clone());
-				updateComponent("x");
-				updateComponent("y");
-				updateComponent("z");
-			}
-
-			return vertices;
-		}
-
-		return bezierCurve;
-	})();
-
-/***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var THREE = __webpack_require__(1);
-	var Curve = __webpack_require__(6);
+	var Curve = __webpack_require__(7);
 
 	Path = function(points){
 		THREE.Object3D.call( this );
@@ -36511,10 +36397,112 @@
 	module.exports = Path;
 
 /***/ },
-/* 9 */,
-/* 10 */,
-/* 11 */,
-/* 12 */
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+	var ForwardDiffBezier = __webpack_require__(8);
+
+	/**
+	 * [Curve description]
+	 * @param {[type]} points [description]
+	 */
+
+	Curve = function(points){
+		THREE.Object3D.call( this );
+		this.type = "Curve";
+		this.points = points;
+
+		var curve = new THREE.Line(new THREE.Geometry(), new THREE.LineBasicMaterial());
+			curve.geometry.vertices = ForwardDiffBezier(this.points);
+			curve.geometry.verticesNeedUpdate = true;
+			curve.material.color = 0x7F7F7F;
+			curve.material.lineWidth = 1.5;
+
+		this.add(curve);
+	}
+
+	Curve.prototype = Object.create( THREE.Object3D.prototype );
+	Curve.prototype.constructor = Curve;
+
+	Curve.prototype.set = function(which, point){
+		this.points[which] = point;
+		this.children[0].geometry.vertices = ForwardDiffBezier(this.points);
+		this.children[0].geometry.verticesNeedUpdate = true;
+	}
+
+	Curve.prototype.dispose = function(){
+		this.children[0].geometry.dispose();
+		this.children[0].material.dispose();
+		this.remove(this.children[0]);
+		delete this.points;
+		delete this.vertices;
+	}
+
+	module.exports = Curve;
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var THREE = __webpack_require__(1);
+
+	module.exports = (function(){
+		var SCALE = 5,
+			STEPS = 1<<SCALE;
+
+		var f			= new THREE.Vector3(),
+			fd			= new THREE.Vector3(),
+			fdd			= new THREE.Vector3(),
+			fddd		= new THREE.Vector3(),
+			fdd_per_2	= new THREE.Vector3(),
+			fddd_per_2	= new THREE.Vector3(),
+			fddd_per_6	= new THREE.Vector3();
+		var t			= 1.0 / STEPS;
+		var temp 		= t * t;
+
+		function initComponent(which, p1, p2, p3, p4){
+			var p_1 = p1[which],
+				p_2 = p2[which],
+				p_3 = p3[which],
+				p_4 = p4[which];
+
+			f[which]			= p_1;
+			fd[which] 			= 3 * t * ( p_2 - p_1 );
+			fdd_per_2[which]	= 3 * temp * ( p_1 + p_3 - 2* p_2 );
+			fddd_per_2[which]	= 3 * temp * t * ( 3 * ( p_2 - p_3 ) + p_4 - p_1 );
+			fddd[which]			= 2 * fddd_per_2[which];
+			fdd[which]			= 2 * fdd_per_2[which];
+			fddd_per_6[which]	= fddd_per_2[which] / 3;
+		}
+
+		function updateComponent(which){
+			f[which]			+= fd[which] + fdd_per_2[which] + fddd_per_6[which];
+			fd[which]			+= fdd[which] + fddd_per_2[which];
+			fdd[which]			+= fddd[which];
+			fdd_per_2[which]	+= fddd_per_2[which];
+		}
+
+		function bezierCurve(points){
+			var vertices = [];
+			initComponent("x", points[0], points[1], points[2], points[3]);
+			initComponent("y", points[0], points[1], points[2], points[3]);
+			initComponent("z", points[0], points[1], points[2], points[3]);
+			for(var i = 0; i <= STEPS; i++){
+				vertices.push(f.clone());
+				updateComponent("x");
+				updateComponent("y");
+				updateComponent("z");
+			}
+
+			return vertices;
+		}
+
+		return bezierCurve;
+	})();
+
+/***/ },
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var THREE = __webpack_require__(1);
@@ -36585,6 +36573,49 @@
 	}
 
 	module.exports = TextLabelCloud;
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = (function(){
+		var commandLine = $('#command-line');
+
+		// var basicCommandSet = 
+
+		return {
+
+			stub : {},
+
+			commandSet : [],
+
+			history : [],
+
+			// Match function splits the command into pieces, and
+			// identify the command with minimum attempt.
+			match : function(command){
+				var arguments = command.split(' ');
+				console.log(arguments);
+			},
+
+
+			init : function(view){
+				this.stub.rndr = view.rndr;
+				this.stub.camera = view.camera;
+				this.stub.scene = view.scene;
+				this.stub.ctrl = view.ctrl;
+				this.stub.sketch = view.sketch;
+
+				commandLine.on('keydown', function(e){
+					if (e.which == 13){
+						var command = commandLine.val();
+						this.match(command);
+					}
+				}.bind(this))
+			}
+		}
+
+	})();
 
 /***/ }
 /******/ ]);

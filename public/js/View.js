@@ -42,18 +42,6 @@ module.exports = (function(){
 			sketch.remove(graphic)
 		},
 
-		initCommand : function(){
-			$('#command-line').on("keydown", function(e){
-				if (e.which === 13) {
-					var command = $(this).val().split(" ")
-					if (command[0] === "edit"){
-						toggleEditing();
-					}
-					$(this).val('');
-				}
-			})
-		},
-
 		initRenderer : function(canvasElement, width, height){
 			rndr = new THREE.WebGLRenderer({
 				alpha:true,
@@ -123,7 +111,6 @@ module.exports = (function(){
 			this.initRenderer(canvasElement, width, height);
 			this.initControl(canvasElement);
 			this.initSketch(rndr, scene, camera, ctrl);
-			this.initCommand();
 
 			this.rndr = rndr;
 			this.camera = camera;

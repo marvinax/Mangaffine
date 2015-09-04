@@ -1,17 +1,20 @@
 var THREE = require('three');
 var View = require('./View.js');
+var Command = require('./CommandLine.js');
+
 var EditablePath = require('./EditablePath.js');
 
 window.onload = function() {
 	View.init($('#viewport').get(0));
-
+	Command.init(View);
+	console.log(Command);
 	var points = [
 		new THREE.Vector3(-10, 0, 0),
 		new THREE.Vector3(-10, -10, 0),
 		new THREE.Vector3(0, -10, 0),
 		new THREE.Vector3(0, 0, 0)
 	];
-	var path = new EditablePath(points, "Now you could assign curve a name.");
+	var path = new EditablePath(points, "Zygomatic");
 	View.add(path);
 
 	path.addPoint(new THREE.Vector3(10, 0, 0));
