@@ -1,7 +1,7 @@
 var THREE = require('three');
 var EditablePath = require('./EditablePath.js');
 
-EditableSketch = function(renderer, scene, camera, controls, commands){
+EditableSketch = function(renderer, scene, camera, controls){
 	THREE.Object3D.call(this);
 
 	this.plane = new THREE.Mesh(
@@ -15,8 +15,8 @@ EditableSketch = function(renderer, scene, camera, controls, commands){
 	this.container = renderer.domElement.parentNode;
 	this.offset = new THREE.Vector3();
 
-	this.editing = true;
-	this.adding = false;
+	this.EDITING = true;
+	this.ADDING = false;
 
 	this.mouse = new THREE.Vector3();
 
@@ -41,10 +41,12 @@ EditableSketch = function(renderer, scene, camera, controls, commands){
 
 		this.raycaster.setFromCamera( this.mouse, camera );
 
-		if(this.adding){
+		if(this.ADDING){
+
+			controls.enabled = false;
 		}
 
-		if(this.editing){
+		if(this.EDITING){
 			if ( this.SELECTED ) {
 				// console.log(this.SELECTED.object.parent.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
 				var intersects = this.raycaster.intersectObject( this.plane );
@@ -84,7 +86,7 @@ EditableSketch = function(renderer, scene, camera, controls, commands){
 		var raycaster = new THREE.Raycaster();
 			raycaster.setFromCamera(this.mouse, camera);
 
-		if (this.editing) {	
+		if (this.EDITING) {	
 			var intersects = raycaster.intersectObjects( this.children );
 
 			if ( intersects.length > 0 ) {
@@ -125,19 +127,21 @@ EditableSketch = function(renderer, scene, camera, controls, commands){
 			var finish = raycaster.intersectObject( this.NEWPATH );
 			if (finish[0]){
 				controls.enabled = true;
-				this.adding = false;
-				this.editing = true;
+				this.ADDING = false;
+				this.EDITING = true;
 				this.NEWPATH = null;
+				this.NEWPATHNAME = null;
 			}
 		}
 
 
-		if (this.adding) {
+		if (this.ADDING) {
 			var p = raycaster.intersectObject( this.plane )[0].point;
 
-			if (!this.NEWPATH){
+			controls.enabled = false;
 
-				controls.enabled = false;
+
+			if (!this.NEWPATH){
 				
 				// handles the first point of the path is created, while the first curve
 				// is not created yet.
@@ -150,8 +154,9 @@ EditableSketch = function(renderer, scene, camera, controls, commands){
 
 				} else {
 
-					this.NEWPATH = new EditablePath([this.START, this.START, p.clone(), p.clone()]);
+					this.NEWPATH = new EditablePath([this.START, this.START, p.clone(), p.clone()], this.NEWPATHNAME);
 					this.add(this.NEWPATH);
+					this.NEWPATH.name = this.NEWPATHNAME;
 					this.START = null;
 					this.STARTPOINT.visible = false;
 				}
@@ -167,7 +172,7 @@ EditableSketch = function(renderer, scene, camera, controls, commands){
 		}
 
 
-		if(this.editing){
+		if(this.EDITING){
 	
 			controls.enabled = true;
 

@@ -14,11 +14,12 @@ window.onload = function() {
 		new THREE.Vector3(0, -10, 0),
 		new THREE.Vector3(0, 0, 0)
 	];
-	var path = new EditablePath(points, "Zygomatic");
-	View.add(path);
+	var path = new EditablePath(points, "zygo");
 
-	path.addPoint(new THREE.Vector3(10, 0, 0));
-	path.removePointAt(2);
+	View.add(path);
+	path.name = "zygo";
+	// path.addPoint(new THREE.Vector3(10, 0, 0));
+	// path.removePointAt(2);
 	path.addPoint(new THREE.Vector3(10, 0, 0));
 	path.setEndPointAt(new THREE.Vector3(-20, 0, 0), 0);
 	path.setEndPointAt(new THREE.Vector3(20, 0, 0), 2);
@@ -28,4 +29,8 @@ window.onload = function() {
 	path.setControlPointAt(new THREE.Vector3(10, -15, 20), 1, -1, true, true);
 	path.setControlPointAt(new THREE.Vector3(20, 15, 0), 2);
 	path.setEndPointAt(new THREE.Vector3(0, 10, 0), 1);
+
+	console.log(path.points.map(function(e){return e.x+" "+e.y+" "+e.z}))
+	path.removePointAt(1);
+
 }

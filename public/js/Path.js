@@ -31,7 +31,7 @@ Path.prototype.removePointAt = function(index){
 		this.points.splice(this.points.length - 3, 3);
 		this.remove(this.children[index-1]);
 	} else {
-		this.points.splice((index - 1) * 3, 3);
+		this.points.splice(index * 3 - 1, 3);
 		this.remove(this.children[index]);
 		this.children[index-1].set(2, this.points[index*3-1]);
 		this.children[index-1].set(3, this.points[index*3]);

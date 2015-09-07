@@ -60,11 +60,12 @@
 			new THREE.Vector3(0, -10, 0),
 			new THREE.Vector3(0, 0, 0)
 		];
-		var path = new EditablePath(points, "Zygomatic");
-		View.add(path);
+		var path = new EditablePath(points, "zygo");
 
-		path.addPoint(new THREE.Vector3(10, 0, 0));
-		path.removePointAt(2);
+		View.add(path);
+		path.name = "zygo";
+		// path.addPoint(new THREE.Vector3(10, 0, 0));
+		// path.removePointAt(2);
 		path.addPoint(new THREE.Vector3(10, 0, 0));
 		path.setEndPointAt(new THREE.Vector3(-20, 0, 0), 0);
 		path.setEndPointAt(new THREE.Vector3(20, 0, 0), 2);
@@ -74,6 +75,10 @@
 		path.setControlPointAt(new THREE.Vector3(10, -15, 20), 1, -1, true, true);
 		path.setControlPointAt(new THREE.Vector3(20, 15, 0), 2);
 		path.setEndPointAt(new THREE.Vector3(0, 10, 0), 1);
+
+		console.log(path.points.map(function(e){return e.x+" "+e.y+" "+e.z}))
+		path.removePointAt(1);
+
 	}
 
 /***/ },
@@ -35989,7 +35994,7 @@
 	var THREE = __webpack_require__(1);
 	var EditablePath = __webpack_require__(5);
 
-	EditableSketch = function(renderer, scene, camera, controls, commands){
+	EditableSketch = function(renderer, scene, camera, controls){
 		THREE.Object3D.call(this);
 
 		this.plane = new THREE.Mesh(
@@ -36003,8 +36008,8 @@
 		this.container = renderer.domElement.parentNode;
 		this.offset = new THREE.Vector3();
 
-		this.editing = true;
-		this.adding = false;
+		this.EDITING = true;
+		this.ADDING = false;
 
 		this.mouse = new THREE.Vector3();
 
@@ -36029,10 +36034,12 @@
 
 			this.raycaster.setFromCamera( this.mouse, camera );
 
-			if(this.adding){
+			if(this.ADDING){
+
+				controls.enabled = false;
 			}
 
-			if(this.editing){
+			if(this.EDITING){
 				if ( this.SELECTED ) {
 					// console.log(this.SELECTED.object.parent.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
 					var intersects = this.raycaster.intersectObject( this.plane );
@@ -36072,7 +36079,7 @@
 			var raycaster = new THREE.Raycaster();
 				raycaster.setFromCamera(this.mouse, camera);
 
-			if (this.editing) {	
+			if (this.EDITING) {	
 				var intersects = raycaster.intersectObjects( this.children );
 
 				if ( intersects.length > 0 ) {
@@ -36113,19 +36120,21 @@
 				var finish = raycaster.intersectObject( this.NEWPATH );
 				if (finish[0]){
 					controls.enabled = true;
-					this.adding = false;
-					this.editing = true;
+					this.ADDING = false;
+					this.EDITING = true;
 					this.NEWPATH = null;
+					this.NEWPATHNAME = null;
 				}
 			}
 
 
-			if (this.adding) {
+			if (this.ADDING) {
 				var p = raycaster.intersectObject( this.plane )[0].point;
 
-				if (!this.NEWPATH){
+				controls.enabled = false;
 
-					controls.enabled = false;
+
+				if (!this.NEWPATH){
 					
 					// handles the first point of the path is created, while the first curve
 					// is not created yet.
@@ -36138,8 +36147,9 @@
 
 					} else {
 
-						this.NEWPATH = new EditablePath([this.START, this.START, p.clone(), p.clone()]);
+						this.NEWPATH = new EditablePath([this.START, this.START, p.clone(), p.clone()], this.NEWPATHNAME);
 						this.add(this.NEWPATH);
+						this.NEWPATH.name = this.NEWPATHNAME;
 						this.START = null;
 						this.STARTPOINT.visible = false;
 					}
@@ -36155,7 +36165,7 @@
 			}
 
 
-			if(this.editing){
+			if(this.EDITING){
 		
 				controls.enabled = true;
 
@@ -36201,8 +36211,14 @@
 		this.handlePoints = new THREE.PointCloud(new THREE.Geometry(), new THREE.PointCloudMaterial());
 		this.handlePoints.geometry.vertices = this.points;
 		this.handlePoints.geometry.verticesNeedUpdate = true;
+		// this.handlePoints.geometry.colors = [];
 
-		this.handlePoints.material.color = new THREE.Color(0x7F7F7F);
+		// this.points.forEach(function(){
+		// 	this.handlePoints.geometry.colors.push(new THREE.Color(0x000000));
+		// }.bind(this));
+
+		// this.handlePoints.material.vertexColors = THREE.VertexColors;
+		this.handlePoints.material.color = new THREE.Color(0x000000);
 		this.handlePoints.material.transparent = true;
 		this.handlePoints.material.opacity = 0.9;
 		this.handlePoints.material.size = 20;
@@ -36220,9 +36236,12 @@
 
 		this.labels = new LabelCloud(points);
 
+		this.name = name;
+
 		this.nameLabel = new LabelCloud([points[0]], [name]);
 
-		this.add(this.path, this.handlePoints, this.handleLines, this.labels, this.nameLabel);
+		// this.add(this.handlePoints, this.handleLines, this.labels, this.nameLabel);
+		this.add(this.path, this.handlePoints, this.labels);
 	}
 
 	EditablePath.prototype = Object.create(THREE.Object3D.prototype);
@@ -36230,20 +36249,41 @@
 
 	EditablePath.prototype.addPoint = function(point){
 		this.path.addPoint(point);
+		console.log(this.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
+		// this.handlePoints.geometry.colors.push(new THREE.Color(0x000000), new THREE.Color(0x000000), new THREE.Color(0x000000));
 		this.labels.addIndexLabel(point);
+		this.handlePoints.geometry.dispose();
+		this.handleLines.geometry.dispose();
+
 	}
 
 	EditablePath.prototype.addFromRaycaster = function(point){
 
 		this.path.addPoint(point);
+		// this.handlePoints.geometry.colors.push(new THREE.Color(), new THREE.Color(), new THREE.Color());
 		this.labels.addIndexLabel(point);
 		this.handlePoints.geometry.dispose();
 		this.handleLines.geometry.dispose();
 	}
 
 	EditablePath.prototype.removePointAt = function(index){
+		console.log(this.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
 		this.path.removePointAt(index);
-		this.labels.removeLabelAt(index);
+
+		// this.handlePoints.geometry.vertices = this.points;
+		// this.handlePoints.geometry.dispose();
+		this.handlePoints.geometry.verticesNeedUpdate = true;
+
+		console.log(this.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
+		console.log(this.handlePoints.geometry.vertices.map(function(e){return e.x+" "+e.y+" "+e.z}));
+		
+		this.handleLines.geometry.dispose();
+
+		// this.handlePoints.geometry.colors.pop();
+		// this.handlePoints.geometry.colors.pop();
+		// this.handlePoints.geometry.colors.pop();
+		// this.labels.removeLabelAt(index);
+
 	}
 
 	EditablePath.prototype.setEndPointAt = function(point, index){
@@ -36288,6 +36328,16 @@
 		this.handlePoints.raycast(raycaster, intersects);
 	}
 
+	EditablePath.prototype.dispose = function(){
+		this.remove(this.handlePoints)
+		this.handlePoints.geometry.dispose();
+		this.handlePoints.material.dispose();
+
+		this.remove(this.handleLines);
+		this.handleLines.geometry.dispose();
+		this.handleLines.material.dispose();
+	}
+
 	module.exports = EditablePath;
 
 /***/ },
@@ -36327,7 +36377,7 @@
 			this.points.splice(this.points.length - 3, 3);
 			this.remove(this.children[index-1]);
 		} else {
-			this.points.splice((index - 1) * 3, 3);
+			this.points.splice(index * 3 - 1, 3);
 			this.remove(this.children[index]);
 			this.children[index-1].set(2, this.points[index*3-1]);
 			this.children[index-1].set(3, this.points[index*3]);
@@ -36581,13 +36631,81 @@
 	module.exports = (function(){
 		var commandLine = $('#command-line');
 
-		// var basicCommandSet = 
+		var parseVector = function(string){
+			var vec = new THREE.Vector3();
+			vec.fromArray(string.split(/[\(\)]/)[1].split(",").map(function(e){return parseFloat(e)}));
+			return vec;
+		}
+
+		var parseList = function(string){
+			return string.split(",").map(function(e){return parseInt(e)});
+		}
+
+		var parseCurveSelection = function(container, string, index){
+			if (string.match(/[a-z]+\:(\,[0-9])*[0-9]/gi).length != 1){
+				console.log("invalid selection at "+index);
+				return;
+			}
+
+			var command = string.split(':');
+			var curve = container.getObjectByName(command[0]);
+			console.log(curve);
+			if (!curve) {
+				console.log("didn't find curve at "+index);
+				return;
+			}
+
+			var indices = parseList(command[1]);
+
+			return {
+				curve : curve,
+				indices : indices
+			}
+		}
+
+		var basicCommandSet = {
+			add : function(container, arguments) {
+				if(!arguments[0]){
+					console.log("you need to specify the curve name");
+					return;
+				}
+
+				container.NEWPATHNAME = arguments[0];
+				container.ADDING = true;
+				container.EDITING = false;
+			},
+
+			remove : function(container, arguments) {
+
+				var path, index;
+				if(arguments[0] == "path"){
+					path = container.getObjectByName(arguments[1]);
+					path.dispose();
+					container.remove(path);
+				} else if (arguments[0] == "point" && arguments[2] == "at"){
+					path = container.getObjectByName(arguments[3]);
+					index = parseInt(arguments[1]);
+					path.removePointAt(index);
+				} else {
+					console.log("the correct command form is \n"+
+						"'remove point <index> atPath <path name>' or \n"+
+						"'remove path <path name>'");
+				}
+			},
+
+			select : function(container, arguments){
+				var allSelection = [];
+				arguments.forEach(function(arg, i){
+					allSelection.push(parseCurveSelection(container, arguments[0], i));
+				});
+			}
+		}
 
 		return {
 
 			stub : {},
 
-			commandSet : [],
+			commandSet : {},
 
 			history : [],
 
@@ -36595,21 +36713,20 @@
 			// identify the command with minimum attempt.
 			match : function(command){
 				var arguments = command.split(' ');
-				console.log(arguments);
+				this.commandSet[arguments[0]](this.sketch, arguments.slice(1));
 			},
 
 
 			init : function(view){
-				this.stub.rndr = view.rndr;
-				this.stub.camera = view.camera;
-				this.stub.scene = view.scene;
-				this.stub.ctrl = view.ctrl;
-				this.stub.sketch = view.sketch;
+				this.sketch = view.sketch;
+
+				this.commandSet = basicCommandSet;
 
 				commandLine.on('keydown', function(e){
 					if (e.which == 13){
 						var command = commandLine.val();
 						this.match(command);
+						commandLine.val("");	
 					}
 				}.bind(this))
 			}
