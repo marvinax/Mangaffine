@@ -10,8 +10,7 @@ TextLabelCloud = function(points, names){
 	this.context = this.canvas.getContext('2d');
 
 	points.forEach(function(e, i){
-		if(i % 3 == 0)
-			_this.addLabel(names ? names[i] : i / 3, e);
+		_this.addLabel(i, e);
 	})
 
 }
@@ -24,8 +23,9 @@ TextLabelCloud.prototype.addLabel = function(message, point){
 }
 
 TextLabelCloud.prototype.removeLabelAt = function(index){
+
 	var len = this.children.length;
-	for(var i = len - 1; i > index; i--){
+	for(var i = index; i < len; i++){
 		this.children[i-1].position.copy(this.children[i].position);
 	}
 	this.remove(this.children[len - 1]);

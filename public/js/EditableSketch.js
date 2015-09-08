@@ -50,7 +50,6 @@ EditableSketch = function(renderer, scene, camera, controls){
 
 		if(this.EDITING){
 			if ( this.MOUSE_SELECTED ) {
-				// console.log(this.MOUSE_SELECTED.object.parent.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
 				var intersects = this.raycaster.intersectObject( this.plane );
 				this.MOUSE_SELECTED.object.parent.setFromRaycaster(this.MOUSE_SELECTED, intersects[0].point, this.offset);
 				return;

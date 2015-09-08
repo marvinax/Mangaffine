@@ -100,6 +100,10 @@ module.exports = (function(){
 
 		apply : function(container, arguments){
 
+			if(arguments[0] == "trans"){
+				
+			}
+
 		}
 	}
 

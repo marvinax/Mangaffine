@@ -16,13 +16,15 @@ Path.prototype.constructor = Path;
 
 Path.prototype.addPoint = function(point){
 	var len = this.points.length;
-	var lastTangent = this.points[len-1].clone();
-		lastTangent.subVectors(this.points[len-1], this.points[len-2]);
-	this.points.push(this.points[len-1].clone().add(lastTangent), point.clone(), point.clone());
+
+	this.points.push(point.clone(), point.clone(), point.clone());
 	this.add(new Curve(this.points.slice(this.points.length - 4)));
 }
 
-Path.prototype.removePointAt = function(index){
+Path.prototype.removePointAt = function(pointIndex){
+
+	var index = Math.floor(pointIndex / 3);
+
 	// index is within the range of (0, (this.points.length - 1) / 3 * 2 + 1)
 	if (index == 0){
 		this.points.splice(0, 3);
@@ -38,64 +40,43 @@ Path.prototype.removePointAt = function(index){
 	}
 }
 
-Path.prototype.setEndPointAt = function(point, index){
-	var move = point.clone();
+Path.prototype.setPointAt = function(point, index){
 
-	if(index == 0){
-		move.sub(this.points[0]);
-		this.points[1].add(move);
-		this.points[0] = point;
-		this.children[0].set(0, this.points[0]);
-		this.children[0].set(1, this.points[1]);
-	} else if (index == this.children.length){
-		move.sub(this.points[index*3]);
-		this.points[index*3-1].add(move);
-		this.points[index*3] = point;
-		this.children[index-1].set(3, this.points[index*3]);
-		this.children[index-1].set(2, this.points[index*3-1]);
-	} else {
-		move.sub(this.points[index*3]);
-		this.points[index*3-1].add(move);
-		this.points[index*3+1].add(move);
-		this.points[index*3] = point;
-		this.children[index-1].set(3, this.points[index*3]);
-		this.children[index-1].set(2, this.points[index*3-1]);
-		this.children[index].set(0, this.points[index*3]);
-		this.children[index].set(1, this.points[index*3+1]);
+	var curveIndex = Math.floor(index / 3),
+		pointIndex = index % 3;
+
+	this.points[index].copy(point);
+	if(curveIndex < this.children.length){
+		this.children[curveIndex].set(pointIndex, point);
+	}
+
+	if(curveIndex > 0 && pointIndex == 0){
+		this.children[curveIndex-1].set(3, point);
 	}
 }
 
-Path.prototype.setControlPointAt = function(point, index, which, directionLocked, ratioLocked){
-	var len = this.points.length;
-	var dist = new THREE.Vector3();
+Path.prototype.setDualOf = function(index, ratio){
 
-	if (index == 0){
-		this.points[1] = point;
-		this.children[index].set(1, this.points[1]);
-	} else if (index === this.children.length){
-		this.points[index * 3 - 1] = point;
-		this.children[index-1].set(2, this.points[index*3-1]);
-	} else {
+	var thisIndex = index % 3;
 
-		if(ratioLocked){
-			var ratio = this.points[index*3].distanceTo(this.points[index*3 - which])/this.points[index*3].distanceTo(this.points[index*3 + which]);
-		}
-		this.points[index * 3 + which] = point;
-		this.children[index - ((which == 1) ? 0 : 1)].set((which == 1 ? 1 : 2), this.points[index*3+which]);
-		dist.subVectors(this.points[index*3+which], this.points[index*3]);
+	if(thisIndex == 0){
+		return;
+	}
+
+	var pointIndex = (thisIndex - 1) * 3 + ( index - thisIndex );
+	var whichNeighbor = (thisIndex * 2 - 3);
+	var dualIndex = pointIndex + whichNeighbor;
+
+	var difference = new THREE.Vector3();
+		difference.subVectors(this.points[pointIndex], this.points[thisIndex]);
+		difference.multiplyScalar(ratio);
 		
-		if(directionLocked){
+	this.points[dualIndex].addVectors(this.points[pointIndex], difference);
 
-			this.points[index * 3 - which].subVectors(this.points[index*3], dist);
+	this.children[Math.floor(index/3)+whichNeighbor].set( 3 - thisIndex, this.points[dualIndex]);
 
-			if(ratioLocked){
-				this.points[index * 3 - which].multiplyScalar(ratio);
-			}
-			this.children[index - ((which == 1) ? 1 : 0)].set((which == 1 ? 2 : 1), this.points[index*3-which]);
-		}
-	}
+	return dualIndex;
 }
-
 
 
 module.exports = Path;

@@ -64,19 +64,18 @@
 
 		View.add(path);
 		path.name = "zygo";
-		// path.addPoint(new THREE.Vector3(10, 0, 0));
-		// path.removePointAt(2);
 		path.addPoint(new THREE.Vector3(10, 0, 0));
-		path.setEndPointAt(new THREE.Vector3(-20, 0, 0), 0);
-		path.setEndPointAt(new THREE.Vector3(20, 0, 0), 2);
-		path.setControlPointAt(new THREE.Vector3(-20, -20, 0), 1, 1);
-		path.setControlPointAt(new THREE.Vector3(0, -40, 0), 1, -1);
-		path.setControlPointAt(new THREE.Vector3(10, -15, 15), 1, -1, true, true);
-		path.setControlPointAt(new THREE.Vector3(10, -15, 20), 1, -1, true, true);
-		path.setControlPointAt(new THREE.Vector3(20, 15, 0), 2);
-		path.setEndPointAt(new THREE.Vector3(0, 10, 0), 1);
+		path.setDualOf(2, 3);
+		path.setPointAt(new THREE.Vector3(-20, 0, 0), 0);
+		path.setPointAt(new THREE.Vector3(20, 0, 0), 6);
+		path.setPointAt(new THREE.Vector3(-20, -20, 0), 4);
+		path.setPointAt(new THREE.Vector3(0, -40, 0), 2);
+		path.setPointAt(new THREE.Vector3(10, -15, 15), 2);
+		path.setPointAt(new THREE.Vector3(10, -15, 20), 4);
+		path.setPointAt(new THREE.Vector3(20, 15, 0), 6);
+		path.setPointAt(new THREE.Vector3(0, 10, 0), 1);
 
-		path.removePointAt(1);
+		path.removePointAt(3);
 
 	}
 
@@ -36042,7 +36041,6 @@
 
 			if(this.EDITING){
 				if ( this.MOUSE_SELECTED ) {
-					// console.log(this.MOUSE_SELECTED.object.parent.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
 					var intersects = this.raycaster.intersectObject( this.plane );
 					this.MOUSE_SELECTED.object.parent.setFromRaycaster(this.MOUSE_SELECTED, intersects[0].point, this.offset);
 					return;
@@ -36240,7 +36238,7 @@
 
 		this.nameLabel = new LabelCloud([points[0]], [name]);
 
-		this.add(this.path, this.handlePoints, this.handleLines, this.labels, this.nameLabel);
+		this.add(this.path, this.handlePoints, this.handleLines, this.labels);
 	}
 
 	EditablePath.prototype = Object.create(THREE.Object3D.prototype);
@@ -36258,7 +36256,8 @@
 		this.path.addPoint(point);
 		this.addColor();
 		this.labels.addIndexLabel(point);
-
+		this.labels.addIndexLabel(point);
+		this.labels.addIndexLabel(point);
 	}
 
 	EditablePath.prototype.addFromRaycaster = function(point){
@@ -36266,51 +36265,38 @@
 		this.path.addPoint(point);
 		this.addColor();
 		this.labels.addIndexLabel(point);
+		this.labels.addIndexLabel(point);
+		this.labels.addIndexLabel(point);
 		this.handlePoints.geometry.dispose();
+		this.handleLines.geometry.dispose();
 	}
 
 	EditablePath.prototype.removePointAt = function(index){
-		this.path.removePointAt(index);
 		this.labels.removeLabelAt(index);
+		this.labels.removeLabelAt(index);
+		this.labels.removeLabelAt(index);
+		this.path.removePointAt(index);
 		this.removeColor();
 	}
 
-	EditablePath.prototype.setEndPointAt = function(point, index){
-		this.path.setEndPointAt(point, index);
+	EditablePath.prototype.setPointAt = function(point, index){
+		this.path.setPointAt(point, index);
 		this.labels.setLabelPositionAt(point, index);
-
-		if(index == 0){
-			var p1 = (new THREE.Vector3()).copy(point);
-			p1.setX(p1.x + 1);
-			this.nameLabel.setLabelPositionAt(p1, index);
-		}
 	}
 
-	EditablePath.prototype.setControlPointAt = function(point, index, which, directionLocked, ratioLocked){
-		this.path.setControlPointAt(point, index, which, directionLocked, ratioLocked);
+	EditablePath.prototype.setDualOf = function(index, ratio){
+		var thatIndex = this.path.setDualOf(index, ratio);
+		this.labels.setLabelPositionAt(this.points[thatIndex], thatIndex);
 	}
 
 	EditablePath.prototype.setFromRaycaster = function(selected, planeIntersect, offset){
-		
-		var pointIndex = Math.round(selected.index / 3),
-			controlIndex = selected.index - pointIndex * 3;
-		var newPoint = new THREE.Vector3();
-			newPoint.subVectors(planeIntersect, offset);
+		this.setPointAt(planeIntersect, selected.index);
 
-		if (controlIndex === 0){
-
-			this.setEndPointAt(newPoint, pointIndex);
-		
-		} else {
-			
-			this.setControlPointAt(newPoint, pointIndex, controlIndex, this.directionLocked, this.ratioLocked);
-		}
-
-		this.handlePoints.geometry.vertices[selected.index] = newPoint;
-		this.handleLines.geometry.vertices[selected.index] = newPoint;
+		this.handlePoints.geometry.vertices[selected.index] = planeIntersect;
+		this.handleLines.geometry.vertices[selected.index] = planeIntersect;
 		this.handlePoints.geometry.verticesNeedUpdate = true;
 		this.handleLines.geometry.verticesNeedUpdate = true;
-		this.points[selected.index] = newPoint;
+		this.points[selected.index] = planeIntersect;
 	}
 
 	EditablePath.prototype.raycast = function(raycaster, intersects){
@@ -36351,13 +36337,15 @@
 
 	Path.prototype.addPoint = function(point){
 		var len = this.points.length;
-		var lastTangent = this.points[len-1].clone();
-			lastTangent.subVectors(this.points[len-1], this.points[len-2]);
-		this.points.push(this.points[len-1].clone().add(lastTangent), point.clone(), point.clone());
+
+		this.points.push(point.clone(), point.clone(), point.clone());
 		this.add(new Curve(this.points.slice(this.points.length - 4)));
 	}
 
-	Path.prototype.removePointAt = function(index){
+	Path.prototype.removePointAt = function(pointIndex){
+
+		var index = Math.floor(pointIndex / 3);
+
 		// index is within the range of (0, (this.points.length - 1) / 3 * 2 + 1)
 		if (index == 0){
 			this.points.splice(0, 3);
@@ -36373,64 +36361,43 @@
 		}
 	}
 
-	Path.prototype.setEndPointAt = function(point, index){
-		var move = point.clone();
+	Path.prototype.setPointAt = function(point, index){
 
-		if(index == 0){
-			move.sub(this.points[0]);
-			this.points[1].add(move);
-			this.points[0] = point;
-			this.children[0].set(0, this.points[0]);
-			this.children[0].set(1, this.points[1]);
-		} else if (index == this.children.length){
-			move.sub(this.points[index*3]);
-			this.points[index*3-1].add(move);
-			this.points[index*3] = point;
-			this.children[index-1].set(3, this.points[index*3]);
-			this.children[index-1].set(2, this.points[index*3-1]);
-		} else {
-			move.sub(this.points[index*3]);
-			this.points[index*3-1].add(move);
-			this.points[index*3+1].add(move);
-			this.points[index*3] = point;
-			this.children[index-1].set(3, this.points[index*3]);
-			this.children[index-1].set(2, this.points[index*3-1]);
-			this.children[index].set(0, this.points[index*3]);
-			this.children[index].set(1, this.points[index*3+1]);
+		var curveIndex = Math.floor(index / 3),
+			pointIndex = index % 3;
+
+		this.points[index].copy(point);
+		if(curveIndex < this.children.length){
+			this.children[curveIndex].set(pointIndex, point);
+		}
+
+		if(curveIndex > 0 && pointIndex == 0){
+			this.children[curveIndex-1].set(3, point);
 		}
 	}
 
-	Path.prototype.setControlPointAt = function(point, index, which, directionLocked, ratioLocked){
-		var len = this.points.length;
-		var dist = new THREE.Vector3();
+	Path.prototype.setDualOf = function(index, ratio){
 
-		if (index == 0){
-			this.points[1] = point;
-			this.children[index].set(1, this.points[1]);
-		} else if (index === this.children.length){
-			this.points[index * 3 - 1] = point;
-			this.children[index-1].set(2, this.points[index*3-1]);
-		} else {
+		var thisIndex = index % 3;
 
-			if(ratioLocked){
-				var ratio = this.points[index*3].distanceTo(this.points[index*3 - which])/this.points[index*3].distanceTo(this.points[index*3 + which]);
-			}
-			this.points[index * 3 + which] = point;
-			this.children[index - ((which == 1) ? 0 : 1)].set((which == 1 ? 1 : 2), this.points[index*3+which]);
-			dist.subVectors(this.points[index*3+which], this.points[index*3]);
+		if(thisIndex == 0){
+			return;
+		}
+
+		var pointIndex = (thisIndex - 1) * 3 + ( index - thisIndex );
+		var whichNeighbor = (thisIndex * 2 - 3);
+		var dualIndex = pointIndex + whichNeighbor;
+
+		var difference = new THREE.Vector3();
+			difference.subVectors(this.points[pointIndex], this.points[thisIndex]);
+			difference.multiplyScalar(ratio);
 			
-			if(directionLocked){
+		this.points[dualIndex].addVectors(this.points[pointIndex], difference);
 
-				this.points[index * 3 - which].subVectors(this.points[index*3], dist);
+		this.children[Math.floor(index/3)+whichNeighbor].set( 3 - thisIndex, this.points[dualIndex]);
 
-				if(ratioLocked){
-					this.points[index * 3 - which].multiplyScalar(ratio);
-				}
-				this.children[index - ((which == 1) ? 1 : 0)].set((which == 1 ? 2 : 1), this.points[index*3-which]);
-			}
-		}
+		return dualIndex;
 	}
-
 
 
 	module.exports = Path;
@@ -36556,8 +36523,7 @@
 		this.context = this.canvas.getContext('2d');
 
 		points.forEach(function(e, i){
-			if(i % 3 == 0)
-				_this.addLabel(names ? names[i] : i / 3, e);
+			_this.addLabel(i, e);
 		})
 
 	}
@@ -36570,8 +36536,9 @@
 	}
 
 	TextLabelCloud.prototype.removeLabelAt = function(index){
+
 		var len = this.children.length;
-		for(var i = len - 1; i > index; i--){
+		for(var i = index; i < len; i++){
 			this.children[i-1].position.copy(this.children[i].position);
 		}
 		this.remove(this.children[len - 1]);
@@ -36718,6 +36685,10 @@
 			},
 
 			apply : function(container, arguments){
+
+				if(arguments[0] == "trans"){
+					
+				}
 
 			}
 		}
