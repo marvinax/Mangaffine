@@ -30,7 +30,6 @@ window.onload = function() {
 	path.setControlPointAt(new THREE.Vector3(20, 15, 0), 2);
 	path.setEndPointAt(new THREE.Vector3(0, 10, 0), 1);
 
-	console.log(path.points.map(function(e){return e.x+" "+e.y+" "+e.z}))
 	path.removePointAt(1);
 
 }

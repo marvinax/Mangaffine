@@ -12,7 +12,7 @@ module.exports = (function(){
 	}
 
 	var parseCurveSelection = function(container, string, index){
-		if (string.match(/[a-z]+\:(\,[0-9])*[0-9]/gi).length != 1){
+		if (string.match(/[a-z]+(\:(\,[0-9])*[0-9])?/gi).length != 1){
 			console.log("invalid selection at "+index);
 			return;
 		}
@@ -25,12 +25,30 @@ module.exports = (function(){
 			return;
 		}
 
-		var indices = parseList(command[1]);
+		var indices;
+		if(command[1]){
+			indices = parseList(command[1]);
+		} else {
+			indices = [];
+			curve.points.forEach(function(e, i){
+				indices.push(i);
+			})
+		}
 
 		return {
 			curve : curve,
 			indices : indices
 		}
+	}
+
+	var highlightSelection = function(selection){
+		selection.forEach(function(e){
+			e.indices.forEach(function(i){
+				if(i % 3 == 0)
+					e.curve.handlePoints.geometry.colors[i].setHex(0xE12D75);
+			})
+			e.curve.handlePoints.geometry.dispose();
+		})
 	}
 
 	var basicCommandSet = {
@@ -64,16 +82,28 @@ module.exports = (function(){
 		},
 
 		select : function(container, arguments){
-			var allSelection = [];
-			arguments.forEach(function(arg, i){
-				allSelection.push(parseCurveSelection(container, arguments[0], i));
-			});
+
+			if(arguments[0] == "cancel"){
+				container.COMMAND_SELECTED = [];
+				container.children.forEach(function(e){
+					e.handlePoints.geometry.colors.forEach(function(c){
+						c.setHex(0x997584);
+					})
+				})
+			} else {			
+				arguments.forEach(function(arg, i){
+					container.COMMAND_SELECTED.push(parseCurveSelection(container, arg, i));
+				});
+			}
+			highlightSelection(container.COMMAND_SELECTED);
+		},
+
+		apply : function(container, arguments){
+
 		}
 	}
 
 	return {
-
-		stub : {},
 
 		commandSet : {},
 

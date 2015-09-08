@@ -20,6 +20,8 @@ EditableSketch = function(renderer, scene, camera, controls){
 
 	this.mouse = new THREE.Vector3();
 
+	this.COMMAND_SELECTED = [];
+
 	this.STARTPOINT = new THREE.PointCloud(new THREE.Geometry(), new THREE.PointCloudMaterial({color : 0x000000}));
 	this.STARTPOINT.material.transparent = true;
 	this.STARTPOINT.material.opacity = 0.9;
@@ -47,10 +49,10 @@ EditableSketch = function(renderer, scene, camera, controls){
 		}
 
 		if(this.EDITING){
-			if ( this.SELECTED ) {
-				// console.log(this.SELECTED.object.parent.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
+			if ( this.MOUSE_SELECTED ) {
+				// console.log(this.MOUSE_SELECTED.object.parent.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
 				var intersects = this.raycaster.intersectObject( this.plane );
-				this.SELECTED.object.parent.setFromRaycaster(this.SELECTED, intersects[0].point, this.offset);
+				this.MOUSE_SELECTED.object.parent.setFromRaycaster(this.MOUSE_SELECTED, intersects[0].point, this.offset);
 				return;
 	
 			}
@@ -94,17 +96,17 @@ EditableSketch = function(renderer, scene, camera, controls){
 				controls.enabled = false;
 
 				if(intersects.length ==2 && intersects[0].index == 0) {
-					this.SELECTED = intersects[ 1 ];
+					this.MOUSE_SELECTED = intersects[ 1 ];
 				} else if (intersects.length == 3){
 					// for non-end point over the path.
-					this.SELECTED = intersects[2];
+					this.MOUSE_SELECTED = intersects[2];
 				} else {
-					this.SELECTED = intersects[0];
+					this.MOUSE_SELECTED = intersects[0];
 				}
 
 				// NOTE that the intersects has been changed to the intersection between the ray 
 				// of the mouse and the invisible plane, since the former intersect between mouse
-				// ray and point cloud has been retained to this.SELECTED.
+				// ray and point cloud has been retained to this.MOUSE_SELECTED.
 				var intersects = raycaster.intersectObject( this.plane );
 				this.offset.copy( intersects[0].point ).sub( this.plane.position );
 
@@ -180,7 +182,7 @@ EditableSketch = function(renderer, scene, camera, controls){
 
 				this.plane.position.copy( this.INTERSECTED.object.parent.points[this.INTERSECTED.index] );
 
-				this.SELECTED = null;
+				this.MOUSE_SELECTED = null;
 
 			}
 

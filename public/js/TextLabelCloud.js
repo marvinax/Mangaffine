@@ -36,7 +36,7 @@ TextLabelCloud.prototype.addIndexLabel = function(point){
 }
 
 TextLabelCloud.prototype.setLabelPositionAt = function(point, index){
-		this.children[index].position.copy(point);
+	this.children[index].position.copy(point);
 }
 
 TextLabelCloud.prototype.makeTextLabel = function( message, point ) {

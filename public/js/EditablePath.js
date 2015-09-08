@@ -13,14 +13,13 @@ EditablePath = function(points, name){
 	this.handlePoints = new THREE.PointCloud(new THREE.Geometry(), new THREE.PointCloudMaterial());
 	this.handlePoints.geometry.vertices = this.points;
 	this.handlePoints.geometry.verticesNeedUpdate = true;
-	// this.handlePoints.geometry.colors = [];
+	this.handlePoints.geometry.colors = [];
 
-	// this.points.forEach(function(){
-	// 	this.handlePoints.geometry.colors.push(new THREE.Color(0x000000));
-	// }.bind(this));
+	this.points.forEach(function(){
+		this.handlePoints.geometry.colors.push(new THREE.Color(0x997584));
+	}.bind(this));
 
-	// this.handlePoints.material.vertexColors = THREE.VertexColors;
-	this.handlePoints.material.color = new THREE.Color(0x000000);
+	this.handlePoints.material.vertexColors = THREE.VertexColors;
 	this.handlePoints.material.transparent = true;
 	this.handlePoints.material.opacity = 0.9;
 	this.handlePoints.material.size = 20;
@@ -42,50 +41,39 @@ EditablePath = function(points, name){
 
 	this.nameLabel = new LabelCloud([points[0]], [name]);
 
-	// this.add(this.handlePoints, this.handleLines, this.labels, this.nameLabel);
-	this.add(this.path, this.handlePoints, this.labels);
+	this.add(this.path, this.handlePoints, this.handleLines, this.labels, this.nameLabel);
 }
 
 EditablePath.prototype = Object.create(THREE.Object3D.prototype);
 EditablePath.prototype.constructor = EditablePath;
 
+EditablePath.prototype.addColor = function(){
+	this.handlePoints.geometry.colors.push(new THREE.Color(0x997584), new THREE.Color(0x997584), new THREE.Color(0x997584));
+}
+
+EditablePath.prototype.removeColor = function(){
+	this.handlePoints.geometry.colors.pop();
+}
+
 EditablePath.prototype.addPoint = function(point){
 	this.path.addPoint(point);
-	console.log(this.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
-	// this.handlePoints.geometry.colors.push(new THREE.Color(0x000000), new THREE.Color(0x000000), new THREE.Color(0x000000));
+	this.addColor();
 	this.labels.addIndexLabel(point);
-	this.handlePoints.geometry.dispose();
-	this.handleLines.geometry.dispose();
 
 }
 
 EditablePath.prototype.addFromRaycaster = function(point){
 
 	this.path.addPoint(point);
-	// this.handlePoints.geometry.colors.push(new THREE.Color(), new THREE.Color(), new THREE.Color());
+	this.addColor();
 	this.labels.addIndexLabel(point);
 	this.handlePoints.geometry.dispose();
-	this.handleLines.geometry.dispose();
 }
 
 EditablePath.prototype.removePointAt = function(index){
-	console.log(this.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
 	this.path.removePointAt(index);
-
-	// this.handlePoints.geometry.vertices = this.points;
-	// this.handlePoints.geometry.dispose();
-	this.handlePoints.geometry.verticesNeedUpdate = true;
-
-	console.log(this.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
-	console.log(this.handlePoints.geometry.vertices.map(function(e){return e.x+" "+e.y+" "+e.z}));
-	
-	this.handleLines.geometry.dispose();
-
-	// this.handlePoints.geometry.colors.pop();
-	// this.handlePoints.geometry.colors.pop();
-	// this.handlePoints.geometry.colors.pop();
-	// this.labels.removeLabelAt(index);
-
+	this.labels.removeLabelAt(index);
+	this.removeColor();
 }
 
 EditablePath.prototype.setEndPointAt = function(point, index){

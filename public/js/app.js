@@ -76,7 +76,6 @@
 		path.setControlPointAt(new THREE.Vector3(20, 15, 0), 2);
 		path.setEndPointAt(new THREE.Vector3(0, 10, 0), 1);
 
-		console.log(path.points.map(function(e){return e.x+" "+e.y+" "+e.z}))
 		path.removePointAt(1);
 
 	}
@@ -36013,6 +36012,8 @@
 
 		this.mouse = new THREE.Vector3();
 
+		this.COMMAND_SELECTED = [];
+
 		this.STARTPOINT = new THREE.PointCloud(new THREE.Geometry(), new THREE.PointCloudMaterial({color : 0x000000}));
 		this.STARTPOINT.material.transparent = true;
 		this.STARTPOINT.material.opacity = 0.9;
@@ -36040,10 +36041,10 @@
 			}
 
 			if(this.EDITING){
-				if ( this.SELECTED ) {
-					// console.log(this.SELECTED.object.parent.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
+				if ( this.MOUSE_SELECTED ) {
+					// console.log(this.MOUSE_SELECTED.object.parent.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
 					var intersects = this.raycaster.intersectObject( this.plane );
-					this.SELECTED.object.parent.setFromRaycaster(this.SELECTED, intersects[0].point, this.offset);
+					this.MOUSE_SELECTED.object.parent.setFromRaycaster(this.MOUSE_SELECTED, intersects[0].point, this.offset);
 					return;
 		
 				}
@@ -36087,17 +36088,17 @@
 					controls.enabled = false;
 
 					if(intersects.length ==2 && intersects[0].index == 0) {
-						this.SELECTED = intersects[ 1 ];
+						this.MOUSE_SELECTED = intersects[ 1 ];
 					} else if (intersects.length == 3){
 						// for non-end point over the path.
-						this.SELECTED = intersects[2];
+						this.MOUSE_SELECTED = intersects[2];
 					} else {
-						this.SELECTED = intersects[0];
+						this.MOUSE_SELECTED = intersects[0];
 					}
 
 					// NOTE that the intersects has been changed to the intersection between the ray 
 					// of the mouse and the invisible plane, since the former intersect between mouse
-					// ray and point cloud has been retained to this.SELECTED.
+					// ray and point cloud has been retained to this.MOUSE_SELECTED.
 					var intersects = raycaster.intersectObject( this.plane );
 					this.offset.copy( intersects[0].point ).sub( this.plane.position );
 
@@ -36173,7 +36174,7 @@
 
 					this.plane.position.copy( this.INTERSECTED.object.parent.points[this.INTERSECTED.index] );
 
-					this.SELECTED = null;
+					this.MOUSE_SELECTED = null;
 
 				}
 
@@ -36211,14 +36212,13 @@
 		this.handlePoints = new THREE.PointCloud(new THREE.Geometry(), new THREE.PointCloudMaterial());
 		this.handlePoints.geometry.vertices = this.points;
 		this.handlePoints.geometry.verticesNeedUpdate = true;
-		// this.handlePoints.geometry.colors = [];
+		this.handlePoints.geometry.colors = [];
 
-		// this.points.forEach(function(){
-		// 	this.handlePoints.geometry.colors.push(new THREE.Color(0x000000));
-		// }.bind(this));
+		this.points.forEach(function(){
+			this.handlePoints.geometry.colors.push(new THREE.Color(0x997584));
+		}.bind(this));
 
-		// this.handlePoints.material.vertexColors = THREE.VertexColors;
-		this.handlePoints.material.color = new THREE.Color(0x000000);
+		this.handlePoints.material.vertexColors = THREE.VertexColors;
 		this.handlePoints.material.transparent = true;
 		this.handlePoints.material.opacity = 0.9;
 		this.handlePoints.material.size = 20;
@@ -36240,50 +36240,39 @@
 
 		this.nameLabel = new LabelCloud([points[0]], [name]);
 
-		// this.add(this.handlePoints, this.handleLines, this.labels, this.nameLabel);
-		this.add(this.path, this.handlePoints, this.labels);
+		this.add(this.path, this.handlePoints, this.handleLines, this.labels, this.nameLabel);
 	}
 
 	EditablePath.prototype = Object.create(THREE.Object3D.prototype);
 	EditablePath.prototype.constructor = EditablePath;
 
+	EditablePath.prototype.addColor = function(){
+		this.handlePoints.geometry.colors.push(new THREE.Color(0x997584), new THREE.Color(0x997584), new THREE.Color(0x997584));
+	}
+
+	EditablePath.prototype.removeColor = function(){
+		this.handlePoints.geometry.colors.pop();
+	}
+
 	EditablePath.prototype.addPoint = function(point){
 		this.path.addPoint(point);
-		console.log(this.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
-		// this.handlePoints.geometry.colors.push(new THREE.Color(0x000000), new THREE.Color(0x000000), new THREE.Color(0x000000));
+		this.addColor();
 		this.labels.addIndexLabel(point);
-		this.handlePoints.geometry.dispose();
-		this.handleLines.geometry.dispose();
 
 	}
 
 	EditablePath.prototype.addFromRaycaster = function(point){
 
 		this.path.addPoint(point);
-		// this.handlePoints.geometry.colors.push(new THREE.Color(), new THREE.Color(), new THREE.Color());
+		this.addColor();
 		this.labels.addIndexLabel(point);
 		this.handlePoints.geometry.dispose();
-		this.handleLines.geometry.dispose();
 	}
 
 	EditablePath.prototype.removePointAt = function(index){
-		console.log(this.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
 		this.path.removePointAt(index);
-
-		// this.handlePoints.geometry.vertices = this.points;
-		// this.handlePoints.geometry.dispose();
-		this.handlePoints.geometry.verticesNeedUpdate = true;
-
-		console.log(this.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
-		console.log(this.handlePoints.geometry.vertices.map(function(e){return e.x+" "+e.y+" "+e.z}));
-		
-		this.handleLines.geometry.dispose();
-
-		// this.handlePoints.geometry.colors.pop();
-		// this.handlePoints.geometry.colors.pop();
-		// this.handlePoints.geometry.colors.pop();
-		// this.labels.removeLabelAt(index);
-
+		this.labels.removeLabelAt(index);
+		this.removeColor();
 	}
 
 	EditablePath.prototype.setEndPointAt = function(point, index){
@@ -36593,7 +36582,7 @@
 	}
 
 	TextLabelCloud.prototype.setLabelPositionAt = function(point, index){
-			this.children[index].position.copy(point);
+		this.children[index].position.copy(point);
 	}
 
 	TextLabelCloud.prototype.makeTextLabel = function( message, point ) {
@@ -36642,7 +36631,7 @@
 		}
 
 		var parseCurveSelection = function(container, string, index){
-			if (string.match(/[a-z]+\:(\,[0-9])*[0-9]/gi).length != 1){
+			if (string.match(/[a-z]+(\:(\,[0-9])*[0-9])?/gi).length != 1){
 				console.log("invalid selection at "+index);
 				return;
 			}
@@ -36655,12 +36644,30 @@
 				return;
 			}
 
-			var indices = parseList(command[1]);
+			var indices;
+			if(command[1]){
+				indices = parseList(command[1]);
+			} else {
+				indices = [];
+				curve.points.forEach(function(e, i){
+					indices.push(i);
+				})
+			}
 
 			return {
 				curve : curve,
 				indices : indices
 			}
+		}
+
+		var highlightSelection = function(selection){
+			selection.forEach(function(e){
+				e.indices.forEach(function(i){
+					if(i % 3 == 0)
+						e.curve.handlePoints.geometry.colors[i].setHex(0xE12D75);
+				})
+				e.curve.handlePoints.geometry.dispose();
+			})
 		}
 
 		var basicCommandSet = {
@@ -36694,16 +36701,28 @@
 			},
 
 			select : function(container, arguments){
-				var allSelection = [];
-				arguments.forEach(function(arg, i){
-					allSelection.push(parseCurveSelection(container, arguments[0], i));
-				});
+
+				if(arguments[0] == "cancel"){
+					container.COMMAND_SELECTED = [];
+					container.children.forEach(function(e){
+						e.handlePoints.geometry.colors.forEach(function(c){
+							c.setHex(0x997584);
+						})
+					})
+				} else {			
+					arguments.forEach(function(arg, i){
+						container.COMMAND_SELECTED.push(parseCurveSelection(container, arg, i));
+					});
+				}
+				highlightSelection(container.COMMAND_SELECTED);
+			},
+
+			apply : function(container, arguments){
+
 			}
 		}
 
 		return {
-
-			stub : {},
 
 			commandSet : {},
 
