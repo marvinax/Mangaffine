@@ -4,7 +4,7 @@ var LabelCloud = require('./TextLabelCloud.js');
 
 EditablePath = function(points, name){
 	THREE.Object3D.call(this);
-	
+
 	this.points = points;
 
 	this.directionLocked = true;
@@ -39,9 +39,9 @@ EditablePath = function(points, name){
 
 	this.name = name;
 
-	this.nameLabel = new LabelCloud([points[0]], [name]);
-
-	this.add(this.path, this.handlePoints, this.handleLines, this.labels);
+	this.nameLabel = new LabelCloud([this.points[0]], [name]);
+	console.log(this.name);
+	this.add(this.path, this.handlePoints, this.handleLines, this.labels, this.nameLabel);
 }
 
 EditablePath.prototype = Object.create(THREE.Object3D.prototype);
@@ -56,50 +56,88 @@ EditablePath.prototype.removeColor = function(){
 }
 
 EditablePath.prototype.addPoint = function(point){
+	this.points.push(point.clone(), point.clone(), point.clone());
+
 	this.path.addPoint(point);
 	this.addColor();
-	this.labels.addIndexLabel(point);
-	this.labels.addIndexLabel(point);
-	this.labels.addIndexLabel(point);
+	this.labels.add3Labels(point);
+
+	this.update();
 }
 
-EditablePath.prototype.addFromRaycaster = function(point){
-
-	this.path.addPoint(point);
-	this.addColor();
-	this.labels.addIndexLabel(point);
-	this.labels.addIndexLabel(point);
-	this.labels.addIndexLabel(point);
+EditablePath.prototype.update =function(){
+	this.path.update(this.points);
+	this.labels.update(this.points);
 	this.handlePoints.geometry.dispose();
 	this.handleLines.geometry.dispose();
 }
 
+
 EditablePath.prototype.removePointAt = function(index){
-	this.labels.removeLabelAt(index);
-	this.labels.removeLabelAt(index);
-	this.labels.removeLabelAt(index);
-	this.path.removePointAt(index);
+
+	if (index == 0){
+		this.points.splice(0, 3);
+	} else if (index == this.points.length){
+		this.points.splice(this.points.length - 3, 3);
+	} else {
+		this.points.splice(index - 1, 3);
+	}
+
+	this.labels.removeLabel();
+	this.labels.removeLabel();
+	this.labels.removeLabel();
+	this.path.removePoint();
 	this.removeColor();
+
+	this.path.update(this.points);
+	this.labels.update(this.points);
 }
 
 EditablePath.prototype.setPointAt = function(point, index){
-	this.path.setPointAt(point, index);
-	this.labels.setLabelPositionAt(point, index);
+	this.points[index].copy(point);
+	if (index == 0){
+		var labelPoint = new THREE.Vector3();
+		labelPoint.addVectors(point, new THREE.Vector3(2, 0, 0));
+		this.nameLabel.setLabelPositionAt(labelPoint, 0);
+	}
+
+	this.update();
 }
 
 EditablePath.prototype.setDualOf = function(index, ratio){
-	var thatIndex = this.path.setDualOf(index, ratio);
-	this.labels.setLabelPositionAt(this.points[thatIndex], thatIndex);
+
+	var thisIndex = index % 3;
+
+	if(thisIndex == 0){
+		return;
+	}
+
+	var pointIndex = (thisIndex - 1) * 3 + ( index - thisIndex );
+	var whichNeighbor = (thisIndex * 2 - 3);
+	var dualIndex = pointIndex + whichNeighbor;
+
+	var difference = new THREE.Vector3();
+		difference.subVectors(this.points[pointIndex], this.points[thisIndex]);
+		difference.multiplyScalar(ratio);
+	
+	this.points[dualIndex].addVectors(this.points[pointIndex], difference);
+
+	this.path.update(this.points);
+	this.labels.update(this.points);
 }
 
-EditablePath.prototype.setFromRaycaster = function(selected, planeIntersect, offset){
-	this.setPointAt(planeIntersect, selected.index);
+EditablePath.prototype.trans = function(vec, mag, indices){
+	console.log(indices);
 
-	this.handlePoints.geometry.vertices[selected.index] = planeIntersect;
-	this.handleLines.geometry.vertices[selected.index] = planeIntersect;
-	this.handlePoints.geometry.verticesNeedUpdate = true;
-	this.handleLines.geometry.verticesNeedUpdate = true;
-	this.points[selected.index] = planeIntersect;
+	var finalVec = vec.clone();
+		finalVec.normalize();
+		finalVec.multiplyScalar(mag);
+
+	indices.forEach(function(i){
+		this.points[i].add(finalVec);
+	}.bind(this));
+
+	this.update()
 }
 
 EditablePath.prototype.raycast = function(raycaster, intersects){

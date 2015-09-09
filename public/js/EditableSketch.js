@@ -13,7 +13,6 @@ EditableSketch = function(renderer, scene, camera, controls){
 
 	this.raycaster = new THREE.Raycaster();
 	this.container = renderer.domElement.parentNode;
-	this.offset = new THREE.Vector3();
 
 	this.EDITING = true;
 	this.ADDING = false;
@@ -51,7 +50,8 @@ EditableSketch = function(renderer, scene, camera, controls){
 		if(this.EDITING){
 			if ( this.MOUSE_SELECTED ) {
 				var intersects = this.raycaster.intersectObject( this.plane );
-				this.MOUSE_SELECTED.object.parent.setFromRaycaster(this.MOUSE_SELECTED, intersects[0].point, this.offset);
+				// this.MOUSE_SELECTED.object.parent.setFromRaycaster(this.MOUSE_SELECTED, intersects[0].point);
+				this.MOUSE_SELECTED.object.parent.setPointAt(intersects[0].point, this.MOUSE_SELECTED.index);
 				return;
 	
 			}
@@ -61,7 +61,6 @@ EditableSketch = function(renderer, scene, camera, controls){
 			if ( intersects.length > 0 ) {
 				if ( (this.INTERSECTED == null) ){
 					this.INTERSECTED = intersects[ 0 ];
-					// console.log(this.INTERSECTED.object.parent.points[this.INTERSECTED.index]);
 					this.plane.position.copy( this.INTERSECTED.object.parent.points[this.INTERSECTED.index] );
 					this.plane.lookAt( camera.position );
 				}
@@ -107,8 +106,6 @@ EditableSketch = function(renderer, scene, camera, controls){
 				// of the mouse and the invisible plane, since the former intersect between mouse
 				// ray and point cloud has been retained to this.MOUSE_SELECTED.
 				var intersects = raycaster.intersectObject( this.plane );
-				this.offset.copy( intersects[0].point ).sub( this.plane.position );
-
 				this.container.style.cursor = 'move';
 
 			}
@@ -163,7 +160,7 @@ EditableSketch = function(renderer, scene, camera, controls){
 				}
 			} else {
 
-				this.NEWPATH.addFromRaycaster(p);
+				this.NEWPATH.addPoint(p);
 
 				// For showing the 3D point coordinates
 				// console.log(this.NEWPATH.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));

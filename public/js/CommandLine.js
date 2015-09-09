@@ -1,3 +1,5 @@
+var THREE = require('three');
+
 module.exports = (function(){
 	var commandLine = $('#command-line');
 
@@ -19,7 +21,7 @@ module.exports = (function(){
 
 		var command = string.split(':');
 		var curve = container.getObjectByName(command[0]);
-		console.log(curve);
+
 		if (!curve) {
 			console.log("didn't find curve at "+index);
 			return;
@@ -44,8 +46,7 @@ module.exports = (function(){
 	var highlightSelection = function(selection){
 		selection.forEach(function(e){
 			e.indices.forEach(function(i){
-				if(i % 3 == 0)
-					e.curve.handlePoints.geometry.colors[i].setHex(0xE12D75);
+				e.curve.handlePoints.geometry.colors[i].setHex(0xE12D75);
 			})
 			e.curve.handlePoints.geometry.dispose();
 		})
@@ -90,7 +91,8 @@ module.exports = (function(){
 						c.setHex(0x997584);
 					})
 				})
-			} else {			
+			} else {
+				console.log(arguments);
 				arguments.forEach(function(arg, i){
 					container.COMMAND_SELECTED.push(parseCurveSelection(container, arg, i));
 				});
@@ -99,9 +101,18 @@ module.exports = (function(){
 		},
 
 		apply : function(container, arguments){
+			console.log(arguments);
+			var operation;
 
-			if(arguments[0] == "trans"){
-				
+			if(arguments[0] == "trans" && arguments[1] == "along" && arguments[3] == "with"){
+				console.log("execed");
+
+				var norm = parseVector(arguments[2]);
+				var dist = parseFloat(arguments[4]);
+
+				container.COMMAND_SELECTED.forEach(function(o){
+					o.curve.trans(norm, dist, o.indices);
+				})
 			}
 
 		}

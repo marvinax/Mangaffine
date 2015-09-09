@@ -10,7 +10,7 @@ TextLabelCloud = function(points, names){
 	this.context = this.canvas.getContext('2d');
 
 	points.forEach(function(e, i){
-		_this.addLabel(i, e);
+		_this.addLabel(names ? names[i] : i, e);
 	})
 
 }
@@ -22,21 +22,36 @@ TextLabelCloud.prototype.addLabel = function(message, point){
 	this.add(this.makeTextLabel(message, point));
 }
 
-TextLabelCloud.prototype.removeLabelAt = function(index){
-
-	var len = this.children.length;
-	for(var i = index; i < len; i++){
-		this.children[i-1].position.copy(this.children[i].position);
-	}
-	this.remove(this.children[len - 1]);
-}
-
 TextLabelCloud.prototype.addIndexLabel = function(point){
 	this.add(this.makeTextLabel(this.children.length, point));
 }
 
+TextLabelCloud.prototype.removeLabel = function(){
+	var len = this.children.length;
+	this.remove(this.children[len - 1]);
+}
+
+TextLabelCloud.prototype.add3Labels = function(point){
+	this.add(this.makeTextLabel(this.children.length, point));
+	this.add(this.makeTextLabel(this.children.length, point));
+	this.add(this.makeTextLabel(this.children.length, point));
+}
+
+TextLabelCloud.prototype.remove3Labels = function(index){
+	this.removeLabelAt(index);
+	this.removeLabelAt(index);
+	this.removeLabelAt(index);
+}
+
+
 TextLabelCloud.prototype.setLabelPositionAt = function(point, index){
 	this.children[index].position.copy(point);
+}
+
+TextLabelCloud.prototype.update = function(points){
+	points.forEach(function(p, i){
+		this.children[i].position.copy(p);
+	}.bind(this))
 }
 
 TextLabelCloud.prototype.makeTextLabel = function( message, point ) {
