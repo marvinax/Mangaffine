@@ -140,6 +140,14 @@ EditablePath.prototype.trans = function(vec, mag, indices){
 	this.update()
 }
 
+EditablePath.prototype.rotate = function(vec, angle, indices) {
+	indices.forEach(function(i){
+		this.points[i].applyAxisAngle(vec, angle);
+	})
+
+	this.update();
+};
+
 EditablePath.prototype.raycast = function(raycaster, intersects){
 	this.handlePoints.raycast(raycaster, intersects);
 }

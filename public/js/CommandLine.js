@@ -102,18 +102,22 @@ module.exports = (function(){
 
 		apply : function(container, arguments){
 			console.log(arguments);
-			var operation;
 
-			if(arguments[0] == "trans" && arguments[1] == "along" && arguments[3] == "with"){
-				console.log("execed");
-
+			if(arguments[0] == "trans" && arguments[1] == "along" && arguments[3] == "by"){
 				var norm = parseVector(arguments[2]);
 				var dist = parseFloat(arguments[4]);
+				var move = "trans";
+			}
+
+			if(arguments[0] == "rotate" && arguments[1] == "around" && arguments[3] == "by"){
+				var norm = parseVector(arguments[2]);
+				var dist = parseFloat(arguments[4]);
+				var move = "rotate";
+			}
 
 				container.COMMAND_SELECTED.forEach(function(o){
-					o.curve.trans(norm, dist, o.indices);
+					o.curve[move](norm, dist, o.indices);
 				})
-			}
 
 		}
 	}
