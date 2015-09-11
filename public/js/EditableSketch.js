@@ -122,8 +122,22 @@ EditableSketch = function(renderer, scene, camera, controls){
 			raycaster.setFromCamera(this.mouse, camera);
 
 		if(this.NEWPATH){
-			var finish = raycaster.intersectObject( this.NEWPATH );
-			if (finish[0]){
+			var lastSelected = raycaster.intersectObject( this.NEWPATH );
+
+			var finish, closed;
+			lastSelected.forEach(function(e){
+				finish = finish || ((e.index == this.NEWPATH.points.length - 1) || (e.index == 0));
+				closed = closed || (e.index == 0);
+			}.bind(this));
+
+			if (finish){
+
+				if(closed){
+					var p = raycaster.intersectObject( this.plane )[0].point;
+					this.NEWPATH.addPoint(p);
+					this.NEWPATH.CLOSED = true;
+				}
+
 				controls.enabled = true;
 				this.ADDING = false;
 				this.EDITING = true;

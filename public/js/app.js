@@ -35286,8 +35286,8 @@
 				});
 
 				canvasElement.appendChild( rndr.domElement );
-
-				rndr.setPixelRatio(window.devicePixelRatio);
+				console.log(window.devicePixelRatio);
+				rndr.setPixelRatio(2);
 				rndr.setSize(width, height);
 				rndr.setClearColor( 0xfafafa, 1);
 				rndr.sortObjects = false;
@@ -36113,8 +36113,22 @@
 				raycaster.setFromCamera(this.mouse, camera);
 
 			if(this.NEWPATH){
-				var finish = raycaster.intersectObject( this.NEWPATH );
-				if (finish[0]){
+				var lastSelected = raycaster.intersectObject( this.NEWPATH );
+
+				var finish, closed;
+				lastSelected.forEach(function(e){
+					finish = finish || ((e.index == this.NEWPATH.points.length - 1) || (e.index == 0));
+					closed = closed || (e.index == 0);
+				}.bind(this));
+
+				if (finish){
+
+					if(closed){
+						var p = raycaster.intersectObject( this.plane )[0].point;
+						this.NEWPATH.addPoint(p);
+						this.NEWPATH.CLOSED = true;
+					}
+
 					controls.enabled = true;
 					this.ADDING = false;
 					this.EDITING = true;
@@ -36199,10 +36213,9 @@
 	EditablePath = function(points, name){
 		THREE.Object3D.call(this);
 
-		this.points = points;
+		this.CLOSED = false;
 
-		this.directionLocked = true;
-		this.ratioLocked = false;
+		this.points = points;
 
 		this.handlePoints = new THREE.PointCloud(new THREE.Geometry(), new THREE.PointCloudMaterial());
 		this.handlePoints.geometry.vertices = this.points;
@@ -36288,11 +36301,21 @@
 	}
 
 	EditablePath.prototype.setPointAt = function(point, index){
+
 		this.points[index].copy(point);
 		if (index == 0){
+
+			if(this.CLOSED){
+				this.points[this.points.length - 1].copy(point);
+			}
+
 			var labelPoint = new THREE.Vector3();
 			labelPoint.addVectors(point, new THREE.Vector3(2, 0, 0));
 			this.nameLabel.setLabelPositionAt(labelPoint, 0);
+		}
+
+		if (this.CLOSED && index == this.points.length - 1){
+			this.points[0].copy(point);
 		}
 
 		this.update();

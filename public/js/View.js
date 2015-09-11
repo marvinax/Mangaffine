@@ -49,8 +49,8 @@ module.exports = (function(){
 			});
 
 			canvasElement.appendChild( rndr.domElement );
-
-			rndr.setPixelRatio(window.devicePixelRatio);
+			console.log(window.devicePixelRatio);
+			rndr.setPixelRatio(2);
 			rndr.setSize(width, height);
 			rndr.setClearColor( 0xfafafa, 1);
 			rndr.sortObjects = false;

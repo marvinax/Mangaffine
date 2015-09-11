@@ -5,10 +5,9 @@ var LabelCloud = require('./TextLabelCloud.js');
 EditablePath = function(points, name){
 	THREE.Object3D.call(this);
 
-	this.points = points;
+	this.CLOSED = false;
 
-	this.directionLocked = true;
-	this.ratioLocked = false;
+	this.points = points;
 
 	this.handlePoints = new THREE.PointCloud(new THREE.Geometry(), new THREE.PointCloudMaterial());
 	this.handlePoints.geometry.vertices = this.points;
@@ -94,11 +93,21 @@ EditablePath.prototype.removePointAt = function(index){
 }
 
 EditablePath.prototype.setPointAt = function(point, index){
+
 	this.points[index].copy(point);
 	if (index == 0){
+
+		if(this.CLOSED){
+			this.points[this.points.length - 1].copy(point);
+		}
+
 		var labelPoint = new THREE.Vector3();
 		labelPoint.addVectors(point, new THREE.Vector3(2, 0, 0));
 		this.nameLabel.setLabelPositionAt(labelPoint, 0);
+	}
+
+	if (this.CLOSED && index == this.points.length - 1){
+		this.points[0].copy(point);
 	}
 
 	this.update();
