@@ -29,6 +29,6 @@ window.onload = function() {
 	path.setPointAt(new THREE.Vector3(20, 15, 0), 6);
 	path.setPointAt(new THREE.Vector3(0, 10, 0), 1);
 
-	path.removePointAt(3);
+	// path.setProject(View.camera);
 
 }

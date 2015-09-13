@@ -227,6 +227,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 		}
 
+		console.log(factor);
+
 	};
 
 	this.panCamera = (function() {
@@ -419,7 +421,6 @@ THREE.TrackballControls = function ( object, domElement ) {
 	}
 
 	function mousemove( event ) {
-
 		if ( _this.enabled === false ) return;
 
 		event.preventDefault();

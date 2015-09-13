@@ -6,6 +6,7 @@ EditablePath = function(points, name){
 	THREE.Object3D.call(this);
 
 	this.CLOSED = false;
+	this.FACING_CAMERA = false;
 
 	this.points = points;
 
@@ -111,6 +112,21 @@ EditablePath.prototype.setPointAt = function(point, index){
 	}
 
 	this.update();
+}
+
+EditablePath.prototype.setProject = function(camera){
+	console.log(camera);
+
+	this.points.forEach(function(e){
+		e = e.project(camera);
+	
+		e.x *= 35 * camera.aspect;
+		e.y *= 35;
+		e.z = 0;
+
+	})
+	this.update();
+	this.FACING_CAMERA = true;
 }
 
 EditablePath.prototype.setDualOf = function(index, ratio){

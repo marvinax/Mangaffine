@@ -96,6 +96,7 @@ module.exports = (function(){
 		animate : function(){
 			var that = this;
 			requestAnimationFrame(function(time){
+				that.sketch.updateFacingCamera();
 				that.animate();
 				ctrl.update();
 				that.render(time);

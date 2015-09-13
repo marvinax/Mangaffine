@@ -75,7 +75,7 @@
 		path.setPointAt(new THREE.Vector3(20, 15, 0), 6);
 		path.setPointAt(new THREE.Vector3(0, 10, 0), 1);
 
-		path.removePointAt(3);
+		// path.setProject(View.camera);
 
 	}
 
@@ -35333,6 +35333,7 @@
 			animate : function(){
 				var that = this;
 				requestAnimationFrame(function(time){
+					that.sketch.updateFacingCamera();
 					that.animate();
 					ctrl.update();
 					that.render(time);
@@ -35995,6 +35996,11 @@
 	EditableSketch = function(renderer, scene, camera, controls){
 		THREE.Object3D.call(this);
 
+		this.rndr = renderer;
+		this.scene = scene;
+		this.camera = camera;
+		this.ctrl = controls;
+
 		this.plane = new THREE.Mesh(
 						new THREE.PlaneBufferGeometry( 2000, 2000, 8, 8 ),
 						new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true } )
@@ -36200,6 +36206,15 @@
 	EditableSketch.prototype = Object.create(THREE.Object3D.prototype);
 	EditableSketch.prototype.constructor = EditableSketch;
 
+	EditableSketch.prototype.updateFacingCamera = function(){
+		this.traverse(function(path){
+			if(path.FACING_CAMERA){
+				path.up = new THREE.Vector3(0, 1, 0);
+				path.lookAt(this.camera.position);
+			}
+		}.bind(this))
+	}
+
 	module.exports = EditableSketch;
 
 /***/ },
@@ -36214,6 +36229,7 @@
 		THREE.Object3D.call(this);
 
 		this.CLOSED = false;
+		this.FACING_CAMERA = false;
 
 		this.points = points;
 
@@ -36319,6 +36335,21 @@
 		}
 
 		this.update();
+	}
+
+	EditablePath.prototype.setProject = function(camera){
+		console.log(camera);
+
+		this.points.forEach(function(e){
+			e = e.project(camera);
+		
+			e.x *= 35 * camera.aspect;
+			e.y *= 35;
+			e.z = 0;
+
+		})
+		this.update();
+		this.FACING_CAMERA = true;
 	}
 
 	EditablePath.prototype.setDualOf = function(index, ratio){
@@ -36757,6 +36788,10 @@
 						o.curve[move](norm, dist, o.indices);
 					})
 
+			},
+
+			project : function(container, arguments){
+				container.getObjectByName(arguments[0]).setProject(container.camera);
 			}
 		}
 
@@ -36775,6 +36810,8 @@
 
 
 			init : function(view){
+				this.view = view;
+
 				this.sketch = view.sketch;
 
 				this.commandSet = basicCommandSet;

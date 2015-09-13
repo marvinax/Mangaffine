@@ -4,6 +4,11 @@ var EditablePath = require('./EditablePath.js');
 EditableSketch = function(renderer, scene, camera, controls){
 	THREE.Object3D.call(this);
 
+	this.rndr = renderer;
+	this.scene = scene;
+	this.camera = camera;
+	this.ctrl = controls;
+
 	this.plane = new THREE.Mesh(
 					new THREE.PlaneBufferGeometry( 2000, 2000, 8, 8 ),
 					new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true } )
@@ -208,5 +213,14 @@ EditableSketch = function(renderer, scene, camera, controls){
 
 EditableSketch.prototype = Object.create(THREE.Object3D.prototype);
 EditableSketch.prototype.constructor = EditableSketch;
+
+EditableSketch.prototype.updateFacingCamera = function(){
+	this.traverse(function(path){
+		if(path.FACING_CAMERA){
+			path.up = new THREE.Vector3(0, 1, 0);
+			path.lookAt(this.camera.position);
+		}
+	}.bind(this))
+}
 
 module.exports = EditableSketch;

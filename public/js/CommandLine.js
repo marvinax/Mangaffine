@@ -119,6 +119,10 @@ module.exports = (function(){
 					o.curve[move](norm, dist, o.indices);
 				})
 
+		},
+
+		project : function(container, arguments){
+			container.getObjectByName(arguments[0]).setProject(container.camera);
 		}
 	}
 
@@ -137,6 +141,8 @@ module.exports = (function(){
 
 
 		init : function(view){
+			this.view = view;
+
 			this.sketch = view.sketch;
 
 			this.commandSet = basicCommandSet;
