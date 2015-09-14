@@ -10,7 +10,7 @@ EditableSketch = function(renderer, scene, camera, controls){
 	this.ctrl = controls;
 
 	this.plane = new THREE.Mesh(
-					new THREE.PlaneBufferGeometry( 2000, 2000, 8, 8 ),
+					new THREE.PlaneBufferGeometry( 4000, 4000, 8, 8 ),
 					new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true } )
 				);
 	this.plane.visible = false;
@@ -54,9 +54,11 @@ EditableSketch = function(renderer, scene, camera, controls){
 
 		if(this.EDITING){
 			if ( this.MOUSE_SELECTED ) {
+
+				var path = this.MOUSE_SELECTED.object.parent;				
+
 				var intersects = this.raycaster.intersectObject( this.plane );
-				// this.MOUSE_SELECTED.object.parent.setFromRaycaster(this.MOUSE_SELECTED, intersects[0].point);
-				this.MOUSE_SELECTED.object.parent.setPointAt(intersects[0].point, this.MOUSE_SELECTED.index);
+				path.setPointAt(intersects[0].point, this.MOUSE_SELECTED.index);
 				return;
 	
 			}
@@ -66,7 +68,10 @@ EditableSketch = function(renderer, scene, camera, controls){
 			if ( intersects.length > 0 ) {
 				if ( (this.INTERSECTED == null) ){
 					this.INTERSECTED = intersects[ 0 ];
-					this.plane.position.copy( this.INTERSECTED.object.parent.points[this.INTERSECTED.index] );
+
+					var path = this.INTERSECTED.object.parent;
+
+					this.plane.position.copy( path.points[this.INTERSECTED.index] );
 					this.plane.lookAt( camera.position );
 				}
 	
@@ -217,8 +222,9 @@ EditableSketch.prototype.constructor = EditableSketch;
 EditableSketch.prototype.updateFacingCamera = function(){
 	this.traverse(function(path){
 		if(path.FACING_CAMERA){
-			path.up = new THREE.Vector3(0, 1, 0);
 			path.lookAt(this.camera.position);
+			path.up = this.camera.up;
+			// console.log(this.camera.up);
 		}
 	}.bind(this))
 }

@@ -10,6 +10,12 @@ EditablePath = function(points, name){
 
 	this.points = points;
 
+	this.plane = new THREE.Mesh(
+					new THREE.PlaneBufferGeometry( 4000, 4000, 8, 8 ),
+					new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true } )
+				);
+	this.plane.visible = false;
+
 	this.handlePoints = new THREE.PointCloud(new THREE.Geometry(), new THREE.PointCloudMaterial());
 	this.handlePoints.geometry.vertices = this.points;
 	this.handlePoints.geometry.verticesNeedUpdate = true;
@@ -41,7 +47,7 @@ EditablePath = function(points, name){
 
 	this.nameLabel = new LabelCloud([this.points[0]], [name]);
 	console.log(this.name);
-	this.add(this.path, this.handlePoints, this.handleLines, this.labels, this.nameLabel);
+	this.add(this.path, this.handlePoints, this.handleLines, this.labels, this.nameLabel, this.plane);
 }
 
 EditablePath.prototype = Object.create(THREE.Object3D.prototype);
