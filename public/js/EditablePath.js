@@ -71,9 +71,9 @@ EditablePath.prototype.addPoint = function(point){
 	this.update();
 }
 
-EditablePath.prototype.update =function(){
-	this.path.update(this.points);
-	this.labels.update(this.points);
+EditablePath.prototype.update =function(index){
+	this.path.update(this.points, index);
+	this.labels.update(this.points, index);
 	this.handlePoints.geometry.dispose();
 	this.handleLines.geometry.dispose();
 }
@@ -117,15 +117,14 @@ EditablePath.prototype.setPointAt = function(point, index){
 		this.points[0].copy(point);
 	}
 
-	this.update();
+	this.update(index);
 }
 
 EditablePath.prototype.setProject = function(camera){
-	console.log(camera);
-
+	
 	this.points.forEach(function(e){
 		e = e.project(camera);
-	
+
 		e.x *= 35 * camera.aspect;
 		e.y *= 35;
 		e.z = 0;

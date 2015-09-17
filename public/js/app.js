@@ -35304,7 +35304,7 @@
 			},
 
 			initScene : function(width, height){
-				camera = new THREE.PerspectiveCamera( 20, width / height, 10, 1000 );
+				camera = new THREE.PerspectiveCamera( 10, width / height, 10, 1000 );
 				camera.position.set(0, 0, 200);
 
 				var ambient = new THREE.AmbientLight(0x202020);
@@ -35315,10 +35315,11 @@
 				camera.add( light );
 
 				scene = new THREE.Scene();
-				scene.fog = new THREE.FogExp2( 0xFFFFFF, 0.003 );
+				scene.fog = new THREE.FogExp2( 0xFFFFFF, 0.001 );
 
 				scene.add(camera);
 				scene.add(ambient);
+
 			},
 
 			initSketch : function(rndr, scene, camera, ctrl){
@@ -35356,8 +35357,11 @@
 				this.ctrl = ctrl;
 				this.canvasElement = canvasElement;
 				this.sketch = sketch;
-
+				
+				// Notably, some matrix are updated after the first time that
+				// this.render() function is executed.
 				this.render();
+
 				this.animate();
 			}
 		}
@@ -36001,11 +36005,13 @@
 		this.camera = camera;
 		this.ctrl = controls;
 
+		this.projectionMatrix = new THREE.Vector3();
+
 		this.plane = new THREE.Mesh(
-						new THREE.PlaneBufferGeometry( 4000, 4000, 8, 8 ),
-						new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true } )
+						new THREE.PlaneBufferGeometry( 40, 40, 8, 8 ),
+						new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.15, side: THREE.DoubleSide, transparent: true } )
 					);
-		this.plane.visible = false;
+		this.plane.visible = true;
 		scene.add( this.plane );
 
 		this.raycaster = new THREE.Raycaster();
@@ -36015,6 +36021,7 @@
 		this.ADDING = false;
 
 		this.mouse = new THREE.Vector3();
+		this.offset = new THREE.Vector3();
 
 		this.COMMAND_SELECTED = [];
 
@@ -36046,36 +36053,11 @@
 
 			if(this.EDITING){
 				if ( this.MOUSE_SELECTED ) {
-
-					var path = this.MOUSE_SELECTED.object.parent;				
-
-					var intersects = this.raycaster.intersectObject( this.plane );
-					path.setPointAt(intersects[0].point, this.MOUSE_SELECTED.index);
-					return;
-		
-				}
-		
-				var intersects = this.raycaster.intersectObjects( this.children );
-		
-				if ( intersects.length > 0 ) {
-					if ( (this.INTERSECTED == null) ){
-						this.INTERSECTED = intersects[ 0 ];
-
-						var path = this.INTERSECTED.object.parent;
-
-						this.plane.position.copy( path.points[this.INTERSECTED.index] );
-						this.plane.lookAt( camera.position );
-					}
-		
-					this.container.style.cursor = 'pointer';
-		
+					this.movePathPoint();
 				} else {
-		
-					this.INTERSECTED = null;
-		
-					this.container.style.cursor = 'auto';
-		
+					this.detectPathPoint();
 				}
+
 			}
 		}.bind(this);
 
@@ -36085,32 +36067,8 @@
 		var onSketchMouseDown = function ( event ) {
 			event.preventDefault();
 
-			var raycaster = new THREE.Raycaster();
-				raycaster.setFromCamera(this.mouse, camera);
-
 			if (this.EDITING) {	
-				var intersects = raycaster.intersectObjects( this.children );
-
-				if ( intersects.length > 0 ) {
-					// console.log(intersects.map(function(e){return e.index}));
-					controls.enabled = false;
-
-					if(intersects.length ==2 && intersects[0].index == 0) {
-						this.MOUSE_SELECTED = intersects[ 1 ];
-					} else if (intersects.length == 3){
-						// for non-end point over the path.
-						this.MOUSE_SELECTED = intersects[2];
-					} else {
-						this.MOUSE_SELECTED = intersects[0];
-					}
-
-					// NOTE that the intersects has been changed to the intersection between the ray 
-					// of the mouse and the invisible plane, since the former intersect between mouse
-					// ray and point cloud has been retained to this.MOUSE_SELECTED.
-					var intersects = raycaster.intersectObject( this.plane );
-					this.container.style.cursor = 'move';
-
-				}
+				this.selectPathPoint();
 			}
 		}.bind(this);
 
@@ -36212,13 +36170,131 @@
 	EditableSketch.prototype.constructor = EditableSketch;
 
 	EditableSketch.prototype.updateFacingCamera = function(){
-		this.traverse(function(path){
+		this.children.forEach(function(path){
 			if(path.FACING_CAMERA){
-				path.lookAt(this.camera.position);
 				path.up = this.camera.up;
-				// console.log(this.camera.up);
+				path.lookAt(this.camera.position);
+				path.updateMatrixWorld();
 			}
 		}.bind(this))
+	}
+
+	EditableSketch.prototype.detectPathPoint = function(){
+
+		// 0. WHEN NO POINT IS SELECTED
+		// ============================
+		// This part of code is continuously executed, in order to check whether the mouse cursor
+		// is hovering on any points. If a point is detected, the plane for calculating subsequent
+		// moving offset will be moved to that point, and THEN adjust its orientation. The reason
+		// of changing the position before making it look at the camera is, if re-locating happens
+		// before re-orienting, then the plane will be always facing same direction. That means all
+		// points are moving on same 3D-plane. However, it will cause visual distortion due to
+		// the perspective camera projection. Thus we'd prefer to make the points moving along a
+		// spherical surface, which looks like moving on 2D plane surface with perspective camera.
+		// 
+		// Now you could set the position of plane as either the point, or the point applied all 3D
+		// transform and right before rasterized. For 3D reference point, it's good to use the
+		// original point on the path, while for 2D projected point, the raycasted 3D point will be
+		// better, since it's already on the spherical surface, and even more precise than trans-
+		// forming the model point with camera's inversed world matrix.
+
+		var intersects = this.raycaster.intersectObjects( this.children );
+
+		if ( intersects.length > 0 ) {
+			if ( (this.INTERSECTED == null) ){
+				this.INTERSECTED = intersects[ 0 ];
+
+				var path = this.INTERSECTED.object.parent;
+
+				if(path.FACING_CAMERA){
+					this.plane.position.copy( this.INTERSECTED.point );
+				} else {
+					this.plane.position.copy( path.points[this.INTERSECTED.index] );
+				}
+
+				this.plane.lookAt( this.camera.position );
+				this.plane.up = this.camera.up;
+
+			}
+
+			this.container.style.cursor = 'pointer';
+
+		} else {
+
+			this.INTERSECTED = null;
+
+			this.container.style.cursor = 'auto';
+
+		}
+	}
+
+	EditableSketch.prototype.selectPathPoint = function(){
+
+		// 1. SELECT POINT
+		// ===============
+		// No further calculation is made here. Just simply distinguish overlapping
+		// control points. Both of the index of selected point, and the intersected
+		// point (with camera plane) will be stored at this.MOUSE_SELECTED, and pass
+		// to the next process.
+
+		var raycaster = new THREE.Raycaster();
+			raycaster.setFromCamera(this.mouse, this.camera);
+
+		var intersects = raycaster.intersectObjects( this.children );
+
+		if ( intersects.length > 0 ) {
+			// console.log(intersects.map(function(e){return e.index}));
+			this.ctrl.enabled = false;
+
+			if(intersects.length ==2 && intersects[0].index == 0) {
+
+				this.MOUSE_SELECTED = intersects[ 1 ];
+
+			} else if (intersects.length == 3){
+				// for non-end point over the path.
+				this.MOUSE_SELECTED = intersects[2];
+
+			} else {
+
+				this.MOUSE_SELECTED = intersects[0];
+
+			}
+
+			this.container.style.cursor = 'move';
+
+		}
+
+	}
+
+	EditableSketch.prototype.movePathPoint = function(){
+
+		// 2. MOVE CONTROL POINT OVER PATH
+		// ===============================
+		// By the last step, we have the plane stored at this.plane. In this process,
+		// we have mainly two tasks, which are:
+		// 
+		// 1) Update the center position of this.plane, and
+		// 
+		// 2) Update the point over the curve with the new point that the camera-mouse
+		//    ray casted on this.plane.
+		//    
+
+		var path = this.MOUSE_SELECTED.object.parent;
+
+		if(path.FACING_CAMERA){
+			console.log(this.MOUSE_SELECTED.point);
+			this.plane.position.copy( this.MOUSE_SELECTED.point );
+		} else {
+			this.plane.position.copy( path.points[this.MOUSE_SELECTED.index] );
+		}
+
+		this.plane.lookAt( this.camera.position );
+		this.plane.up = this.camera.up;
+
+		var intersects = this.raycaster.intersectObject( this.plane );
+
+		path.setPointAt(intersects[0].point.applyMatrix4(this.camera.matrixWorldInverse).setZ(0), this.MOUSE_SELECTED.index);
+		this.MOUSE_SELECTED.point = intersects[0].point;
 	}
 
 	module.exports = EditableSketch;
@@ -36300,9 +36376,9 @@
 		this.update();
 	}
 
-	EditablePath.prototype.update =function(){
-		this.path.update(this.points);
-		this.labels.update(this.points);
+	EditablePath.prototype.update =function(index){
+		this.path.update(this.points, index);
+		this.labels.update(this.points, index);
 		this.handlePoints.geometry.dispose();
 		this.handleLines.geometry.dispose();
 	}
@@ -36346,15 +36422,14 @@
 			this.points[0].copy(point);
 		}
 
-		this.update();
+		this.update(index);
 	}
 
 	EditablePath.prototype.setProject = function(camera){
-		console.log(camera);
-
+		
 		this.points.forEach(function(e){
 			e = e.project(camera);
-		
+
 			e.x *= 35 * camera.aspect;
 			e.y *= 35;
 			e.z = 0;
@@ -36462,12 +36537,14 @@
 		this.update(this.points);
 	}
 
-	Path.prototype.update = function(points){
+	Path.prototype.update = function(points, index){
 		var curveIndex, pointIndex;
 
-		points.forEach(function(p, i){
-			curveIndex = Math.floor(i / 3);
-			pointIndex = i % 3;
+		if (index){
+			var p = points[index];
+
+			curveIndex = Math.floor(index / 3);
+			pointIndex = index % 3;
 
 			if(curveIndex < this.children.length){
 				this.children[curveIndex].set(pointIndex, p);
@@ -36476,8 +36553,20 @@
 			if(curveIndex > 0 && pointIndex == 0){
 				this.children[curveIndex-1].set(3, p);
 			}	
-		}.bind(this));
+		} else {
+			points.forEach(function(p, i){
+				curveIndex = Math.floor(i / 3);
+				pointIndex = i % 3;
 
+				if(curveIndex < this.children.length){
+					this.children[curveIndex].set(pointIndex, p);
+				}
+
+				if(curveIndex > 0 && pointIndex == 0){
+					this.children[curveIndex-1].set(3, p);
+				}	
+			}.bind(this));
+		}
 	}
 
 	module.exports = Path;
@@ -36641,10 +36730,14 @@
 		this.children[index].position.copy(point);
 	}
 
-	TextLabelCloud.prototype.update = function(points){
-		points.forEach(function(p, i){
-			this.children[i].position.copy(p);
-		}.bind(this))
+	TextLabelCloud.prototype.update = function(points, index){
+		if (index){
+			this.children[index].position.copy(points[index]);
+		} else {	
+			points.forEach(function(p, i){
+				this.children[i].position.copy(p);
+			}.bind(this))
+		}
 	}
 
 	TextLabelCloud.prototype.makeTextLabel = function( message, point ) {
@@ -36804,6 +36897,17 @@
 
 			project : function(container, arguments){
 				container.getObjectByName(arguments[0]).setProject(container.camera);
+			},
+
+			camera : function(container, arguments){
+				console.log(container.camera);
+				console.log(container.camera.up);
+				console.log(container.camera.matrixWorld.elements);
+			},
+
+			lookFromX : function(container, arguments){
+				container.camera.position.set(0, 200, 0);
+				container.camera.lookAt(new THREE.Vector3( 0, 0, 0 ));
 			}
 		}
 

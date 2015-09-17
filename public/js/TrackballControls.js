@@ -1,7 +1,9 @@
-THREE.TrackballControls = function ( object, domElement ) {
+THREE = require('three');
+
+TrackballControls = function ( object, domElement ) {
 
 	var _this = this;
-	var STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2, TOUCH_ROTATE: 3, TOUCH_ZOOM_PAN: 4 };
+	_this.STATE = { NONE: -1, ROTATE: 0, ZOOM: 1, PAN: 2, TOUCH_ROTATE: 3, TOUCH_ZOOM_PAN: 4 };
 
 	this.object = object;
 	this.domElement = ( domElement !== undefined ) ? domElement : document;
@@ -36,8 +38,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 	var lastPosition = new THREE.Vector3();
 
-	var _state = STATE.NONE,
-	_prevState = STATE.NONE,
+	_this.currentState = _this.STATE.NONE,
+	_prevState = _this.STATE.NONE,
 
 	_eye = new THREE.Vector3(),
 
@@ -199,7 +201,7 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 		var factor;
 
-		if ( _state === STATE.TOUCH_ZOOM_PAN ) {
+		if ( _this.currentState === _this.STATE.TOUCH_ZOOM_PAN ) {
 
 			factor = _touchZoomDistanceStart / _touchZoomDistanceEnd;
 			_touchZoomDistanceStart = _touchZoomDistanceEnd;
@@ -226,8 +228,6 @@ THREE.TrackballControls = function ( object, domElement ) {
 			}
 
 		}
-
-		console.log(factor);
 
 	};
 
@@ -326,8 +326,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 	this.reset = function () {
 
-		_state = STATE.NONE;
-		_prevState = STATE.NONE;
+		_this.currentState = _this.STATE.NONE;
+		_prevState = _this.STATE.NONE;
 
 		_this.target.copy( _this.target0 );
 		_this.object.position.copy( _this.position0 );
@@ -351,23 +351,23 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 		window.removeEventListener( 'keydown', keydown );
 
-		_prevState = _state;
+		_prevState = _this.currentState;
 
-		if ( _state !== STATE.NONE ) {
+		if ( _this.currentState !== _this.STATE.NONE ) {
 
 			return;
 
-		} else if ( event.keyCode === _this.keys[ STATE.ROTATE ] && !_this.noRotate ) {
+		} else if ( event.keyCode === _this.keys[ _this.STATE.ROTATE ] && !_this.noRotate ) {
 
-			_state = STATE.ROTATE;
+			_this.currentState = _this.STATE.ROTATE;
 
-		} else if ( event.keyCode === _this.keys[ STATE.ZOOM ] && !_this.noZoom ) {
+		} else if ( event.keyCode === _this.keys[ _this.STATE.ZOOM ] && !_this.noZoom ) {
 
-			_state = STATE.ZOOM;
+			_this.currentState = _this.STATE.ZOOM;
 
-		} else if ( event.keyCode === _this.keys[ STATE.PAN ] && !_this.noPan ) {
+		} else if ( event.keyCode === _this.keys[ _this.STATE.PAN ] && !_this.noPan ) {
 
-			_state = STATE.PAN;
+			_this.currentState = _this.STATE.PAN;
 
 		}
 
@@ -377,7 +377,7 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 		if ( _this.enabled === false ) return;
 
-		_state = _prevState;
+		_this.currentState = _prevState;
 
 		window.addEventListener( 'keydown', keydown, false );
 
@@ -390,23 +390,23 @@ THREE.TrackballControls = function ( object, domElement ) {
 		event.preventDefault();
 		event.stopPropagation();
 
-		if ( _state === STATE.NONE ) {
+		if ( _this.currentState === _this.STATE.NONE ) {
 
-			_state = event.button;
+			_this.currentState = event.button;
 
 		}
 
-		if ( _state === STATE.ROTATE && !_this.noRotate ) {
+		if ( _this.currentState === _this.STATE.ROTATE && !_this.noRotate ) {
 
 			_moveCurr.copy( getMouseOnCircle( event.pageX, event.pageY ) );
 			_movePrev.copy(_moveCurr);
 
-		} else if ( _state === STATE.ZOOM && !_this.noZoom ) {
+		} else if ( _this.currentState === _this.STATE.ZOOM && !_this.noZoom ) {
 
 			_zoomStart.copy( getMouseOnScreen( event.pageX, event.pageY ) );
 			_zoomEnd.copy(_zoomStart);
 
-		} else if ( _state === STATE.PAN && !_this.noPan ) {
+		} else if ( _this.currentState === _this.STATE.PAN && !_this.noPan ) {
 
 			_panStart.copy( getMouseOnScreen( event.pageX, event.pageY ) );
 			_panEnd.copy(_panStart);
@@ -426,16 +426,16 @@ THREE.TrackballControls = function ( object, domElement ) {
 		event.preventDefault();
 		event.stopPropagation();
 
-		if ( _state === STATE.ROTATE && !_this.noRotate ) {
+		if ( _this.currentState === _this.STATE.ROTATE && !_this.noRotate ) {
 
 			_movePrev.copy(_moveCurr);
 			_moveCurr.copy( getMouseOnCircle( event.pageX, event.pageY ) );
 
-		} else if ( _state === STATE.ZOOM && !_this.noZoom ) {
+		} else if ( _this.currentState === _this.STATE.ZOOM && !_this.noZoom ) {
 
 			_zoomEnd.copy( getMouseOnScreen( event.pageX, event.pageY ) );
 
-		} else if ( _state === STATE.PAN && !_this.noPan ) {
+		} else if ( _this.currentState === _this.STATE.PAN && !_this.noPan ) {
 
 			_panEnd.copy( getMouseOnScreen( event.pageX, event.pageY ) );
 
@@ -450,7 +450,7 @@ THREE.TrackballControls = function ( object, domElement ) {
 		event.preventDefault();
 		event.stopPropagation();
 
-		_state = STATE.NONE;
+		_this.currentState = _this.STATE.NONE;
 
 		document.removeEventListener( 'mousemove', mousemove );
 		document.removeEventListener( 'mouseup', mouseup );
@@ -490,13 +490,13 @@ THREE.TrackballControls = function ( object, domElement ) {
 		switch ( event.touches.length ) {
 
 			case 1:
-				_state = STATE.TOUCH_ROTATE;
+				_this.currentState = _this.STATE.TOUCH_ROTATE;
 				_moveCurr.copy( getMouseOnCircle( event.touches[ 0 ].pageX, event.touches[ 0 ].pageY ) );
 				_movePrev.copy(_moveCurr);
 				break;
 
 			case 2:
-				_state = STATE.TOUCH_ZOOM_PAN;
+				_this.currentState = _this.STATE.TOUCH_ZOOM_PAN;
 				var dx = event.touches[ 0 ].pageX - event.touches[ 1 ].pageX;
 				var dy = event.touches[ 0 ].pageY - event.touches[ 1 ].pageY;
 				_touchZoomDistanceEnd = _touchZoomDistanceStart = Math.sqrt( dx * dx + dy * dy );
@@ -508,7 +508,7 @@ THREE.TrackballControls = function ( object, domElement ) {
 				break;
 
 			default:
-				_state = STATE.NONE;
+				_this.currentState = _this.STATE.NONE;
 
 		}
 		_this.dispatchEvent( startEvent );
@@ -541,7 +541,7 @@ THREE.TrackballControls = function ( object, domElement ) {
 				break;
 
 			default:
-				_state = STATE.NONE;
+				_this.currentState = _this.STATE.NONE;
 
 		}
 
@@ -569,7 +569,7 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 		}
 
-		_state = STATE.NONE;
+		_this.currentState = _this.STATE.NONE;
 		_this.dispatchEvent( endEvent );
 
 	}
@@ -595,5 +595,7 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 };
 
-THREE.TrackballControls.prototype = Object.create( THREE.EventDispatcher.prototype );
-THREE.TrackballControls.prototype.constructor = THREE.TrackballControls;
+TrackballControls.prototype = Object.create( THREE.EventDispatcher.prototype );
+TrackballControls.prototype.constructor = TrackballControls;
+
+module.exports = TrackballControls;

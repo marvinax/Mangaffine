@@ -48,10 +48,14 @@ TextLabelCloud.prototype.setLabelPositionAt = function(point, index){
 	this.children[index].position.copy(point);
 }
 
-TextLabelCloud.prototype.update = function(points){
-	points.forEach(function(p, i){
-		this.children[i].position.copy(p);
-	}.bind(this))
+TextLabelCloud.prototype.update = function(points, index){
+	if (index){
+		this.children[index].position.copy(points[index]);
+	} else {	
+		points.forEach(function(p, i){
+			this.children[i].position.copy(p);
+		}.bind(this))
+	}
 }
 
 TextLabelCloud.prototype.makeTextLabel = function( message, point ) {

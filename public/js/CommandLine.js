@@ -123,6 +123,17 @@ module.exports = (function(){
 
 		project : function(container, arguments){
 			container.getObjectByName(arguments[0]).setProject(container.camera);
+		},
+
+		camera : function(container, arguments){
+			console.log(container.camera);
+			console.log(container.camera.up);
+			console.log(container.camera.matrixWorld.elements);
+		},
+
+		lookFromX : function(container, arguments){
+			container.camera.position.set(0, 200, 0);
+			container.camera.lookAt(new THREE.Vector3( 0, 0, 0 ));
 		}
 	}
 

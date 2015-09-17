@@ -9,11 +9,13 @@ EditableSketch = function(renderer, scene, camera, controls){
 	this.camera = camera;
 	this.ctrl = controls;
 
+	this.projectionMatrix = new THREE.Vector3();
+
 	this.plane = new THREE.Mesh(
-					new THREE.PlaneBufferGeometry( 4000, 4000, 8, 8 ),
-					new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true } )
+					new THREE.PlaneBufferGeometry( 40, 40, 8, 8 ),
+					new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.15, side: THREE.DoubleSide, transparent: true } )
 				);
-	this.plane.visible = false;
+	this.plane.visible = true;
 	scene.add( this.plane );
 
 	this.raycaster = new THREE.Raycaster();
@@ -23,6 +25,7 @@ EditableSketch = function(renderer, scene, camera, controls){
 	this.ADDING = false;
 
 	this.mouse = new THREE.Vector3();
+	this.offset = new THREE.Vector3();
 
 	this.COMMAND_SELECTED = [];
 
@@ -54,36 +57,11 @@ EditableSketch = function(renderer, scene, camera, controls){
 
 		if(this.EDITING){
 			if ( this.MOUSE_SELECTED ) {
-
-				var path = this.MOUSE_SELECTED.object.parent;				
-
-				var intersects = this.raycaster.intersectObject( this.plane );
-				path.setPointAt(intersects[0].point, this.MOUSE_SELECTED.index);
-				return;
-	
-			}
-	
-			var intersects = this.raycaster.intersectObjects( this.children );
-	
-			if ( intersects.length > 0 ) {
-				if ( (this.INTERSECTED == null) ){
-					this.INTERSECTED = intersects[ 0 ];
-
-					var path = this.INTERSECTED.object.parent;
-
-					this.plane.position.copy( path.points[this.INTERSECTED.index] );
-					this.plane.lookAt( camera.position );
-				}
-	
-				this.container.style.cursor = 'pointer';
-	
+				this.movePathPoint();
 			} else {
-	
-				this.INTERSECTED = null;
-	
-				this.container.style.cursor = 'auto';
-	
+				this.detectPathPoint();
 			}
+
 		}
 	}.bind(this);
 
@@ -93,32 +71,8 @@ EditableSketch = function(renderer, scene, camera, controls){
 	var onSketchMouseDown = function ( event ) {
 		event.preventDefault();
 
-		var raycaster = new THREE.Raycaster();
-			raycaster.setFromCamera(this.mouse, camera);
-
 		if (this.EDITING) {	
-			var intersects = raycaster.intersectObjects( this.children );
-
-			if ( intersects.length > 0 ) {
-				// console.log(intersects.map(function(e){return e.index}));
-				controls.enabled = false;
-
-				if(intersects.length ==2 && intersects[0].index == 0) {
-					this.MOUSE_SELECTED = intersects[ 1 ];
-				} else if (intersects.length == 3){
-					// for non-end point over the path.
-					this.MOUSE_SELECTED = intersects[2];
-				} else {
-					this.MOUSE_SELECTED = intersects[0];
-				}
-
-				// NOTE that the intersects has been changed to the intersection between the ray 
-				// of the mouse and the invisible plane, since the former intersect between mouse
-				// ray and point cloud has been retained to this.MOUSE_SELECTED.
-				var intersects = raycaster.intersectObject( this.plane );
-				this.container.style.cursor = 'move';
-
-			}
+			this.selectPathPoint();
 		}
 	}.bind(this);
 
@@ -220,13 +174,131 @@ EditableSketch.prototype = Object.create(THREE.Object3D.prototype);
 EditableSketch.prototype.constructor = EditableSketch;
 
 EditableSketch.prototype.updateFacingCamera = function(){
-	this.traverse(function(path){
+	this.children.forEach(function(path){
 		if(path.FACING_CAMERA){
-			path.lookAt(this.camera.position);
 			path.up = this.camera.up;
-			// console.log(this.camera.up);
+			path.lookAt(this.camera.position);
+			path.updateMatrixWorld();
 		}
 	}.bind(this))
+}
+
+EditableSketch.prototype.detectPathPoint = function(){
+
+	// 0. WHEN NO POINT IS SELECTED
+	// ============================
+	// This part of code is continuously executed, in order to check whether the mouse cursor
+	// is hovering on any points. If a point is detected, the plane for calculating subsequent
+	// moving offset will be moved to that point, and THEN adjust its orientation. The reason
+	// of changing the position before making it look at the camera is, if re-locating happens
+	// before re-orienting, then the plane will be always facing same direction. That means all
+	// points are moving on same 3D-plane. However, it will cause visual distortion due to
+	// the perspective camera projection. Thus we'd prefer to make the points moving along a
+	// spherical surface, which looks like moving on 2D plane surface with perspective camera.
+	// 
+	// Now you could set the position of plane as either the point, or the point applied all 3D
+	// transform and right before rasterized. For 3D reference point, it's good to use the
+	// original point on the path, while for 2D projected point, the raycasted 3D point will be
+	// better, since it's already on the spherical surface, and even more precise than trans-
+	// forming the model point with camera's inversed world matrix.
+
+	var intersects = this.raycaster.intersectObjects( this.children );
+
+	if ( intersects.length > 0 ) {
+		if ( (this.INTERSECTED == null) ){
+			this.INTERSECTED = intersects[ 0 ];
+
+			var path = this.INTERSECTED.object.parent;
+
+			if(path.FACING_CAMERA){
+				this.plane.position.copy( this.INTERSECTED.point );
+			} else {
+				this.plane.position.copy( path.points[this.INTERSECTED.index] );
+			}
+
+			this.plane.lookAt( this.camera.position );
+			this.plane.up = this.camera.up;
+
+		}
+
+		this.container.style.cursor = 'pointer';
+
+	} else {
+
+		this.INTERSECTED = null;
+
+		this.container.style.cursor = 'auto';
+
+	}
+}
+
+EditableSketch.prototype.selectPathPoint = function(){
+
+	// 1. SELECT POINT
+	// ===============
+	// No further calculation is made here. Just simply distinguish overlapping
+	// control points. Both of the index of selected point, and the intersected
+	// point (with camera plane) will be stored at this.MOUSE_SELECTED, and pass
+	// to the next process.
+
+	var raycaster = new THREE.Raycaster();
+		raycaster.setFromCamera(this.mouse, this.camera);
+
+	var intersects = raycaster.intersectObjects( this.children );
+
+	if ( intersects.length > 0 ) {
+		// console.log(intersects.map(function(e){return e.index}));
+		this.ctrl.enabled = false;
+
+		if(intersects.length ==2 && intersects[0].index == 0) {
+
+			this.MOUSE_SELECTED = intersects[ 1 ];
+
+		} else if (intersects.length == 3){
+			// for non-end point over the path.
+			this.MOUSE_SELECTED = intersects[2];
+
+		} else {
+
+			this.MOUSE_SELECTED = intersects[0];
+
+		}
+
+		this.container.style.cursor = 'move';
+
+	}
+
+}
+
+EditableSketch.prototype.movePathPoint = function(){
+
+	// 2. MOVE CONTROL POINT OVER PATH
+	// ===============================
+	// By the last step, we have the plane stored at this.plane. In this process,
+	// we have mainly two tasks, which are:
+	// 
+	// 1) Update the center position of this.plane, and
+	// 
+	// 2) Update the point over the curve with the new point that the camera-mouse
+	//    ray casted on this.plane.
+	//    
+
+	var path = this.MOUSE_SELECTED.object.parent;
+
+	if(path.FACING_CAMERA){
+		console.log(this.MOUSE_SELECTED.point);
+		this.plane.position.copy( this.MOUSE_SELECTED.point );
+	} else {
+		this.plane.position.copy( path.points[this.MOUSE_SELECTED.index] );
+	}
+
+	this.plane.lookAt( this.camera.position );
+	this.plane.up = this.camera.up;
+
+	var intersects = this.raycaster.intersectObject( this.plane );
+
+	path.setPointAt(intersects[0].point.applyMatrix4(this.camera.matrixWorldInverse).setZ(0), this.MOUSE_SELECTED.index);
+	this.MOUSE_SELECTED.point = intersects[0].point;
 }
 
 module.exports = EditableSketch;

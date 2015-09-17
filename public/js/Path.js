@@ -32,12 +32,14 @@ Path.prototype.setPointAt = function(point, index){
 	this.update(this.points);
 }
 
-Path.prototype.update = function(points){
+Path.prototype.update = function(points, index){
 	var curveIndex, pointIndex;
 
-	points.forEach(function(p, i){
-		curveIndex = Math.floor(i / 3);
-		pointIndex = i % 3;
+	if (index){
+		var p = points[index];
+
+		curveIndex = Math.floor(index / 3);
+		pointIndex = index % 3;
 
 		if(curveIndex < this.children.length){
 			this.children[curveIndex].set(pointIndex, p);
@@ -46,8 +48,20 @@ Path.prototype.update = function(points){
 		if(curveIndex > 0 && pointIndex == 0){
 			this.children[curveIndex-1].set(3, p);
 		}	
-	}.bind(this));
+	} else {
+		points.forEach(function(p, i){
+			curveIndex = Math.floor(i / 3);
+			pointIndex = i % 3;
 
+			if(curveIndex < this.children.length){
+				this.children[curveIndex].set(pointIndex, p);
+			}
+
+			if(curveIndex > 0 && pointIndex == 0){
+				this.children[curveIndex-1].set(3, p);
+			}	
+		}.bind(this));
+	}
 }
 
 module.exports = Path;
