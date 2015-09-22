@@ -112,6 +112,7 @@ EditableSketch = function(renderer, scene, camera, controls){
 
 
 		if (this.ADDING) {
+			console.log()
 			var p = raycaster.intersectObject( this.plane )[0].point;
 
 			controls.enabled = false;
@@ -153,8 +154,6 @@ EditableSketch = function(renderer, scene, camera, controls){
 			controls.enabled = true;
 
 			if ( this.INTERSECTED ) {
-
-				this.plane.position.copy( this.INTERSECTED.object.parent.points[this.INTERSECTED.index] );
 
 				this.MOUSE_SELECTED = null;
 
@@ -210,14 +209,17 @@ EditableSketch.prototype.detectPathPoint = function(){
 
 			var path = this.INTERSECTED.object.parent;
 
+			this.plane.lookAt( this.camera.position );
+			this.plane.up = this.camera.up;
+
 			if(path.FACING_CAMERA){
-				this.plane.position.copy( this.INTERSECTED.point );
+				var inversedPathMatrix = new THREE.Matrix4();
+					inversedPathMatrix.getInverse(path.matrixWorld);
+
+				this.plane.position.copy( this.INTERSECTED.point);
 			} else {
 				this.plane.position.copy( path.points[this.INTERSECTED.index] );
 			}
-
-			this.plane.lookAt( this.camera.position );
-			this.plane.up = this.camera.up;
 
 		}
 
@@ -274,30 +276,40 @@ EditableSketch.prototype.movePathPoint = function(){
 
 	// 2. MOVE CONTROL POINT OVER PATH
 	// ===============================
-	// By the last step, we have the plane stored at this.plane. In this process,
-	// we have mainly two tasks, which are:
+	// As aforementioned, here we also need to deal with two types of moving control
+	// points. For the first type of curve, which is not projected to the camera plane,
+	// We first locate the point **OVER THE CURVE** with raycaster, and make it as the
+	// center of the plane. Thus, when we drag the point, the point will be moving along
+	// a plane which is parallel to the camera projection plane, which intersect with
+	// the original coordinate of that point.
 	// 
-	// 1) Update the center position of this.plane, and
-	// 
-	// 2) Update the point over the curve with the new point that the camera-mouse
-	//    ray casted on this.plane.
-	//    
+	// For the second type, it will be a little tricky. Since rotating the camera doesn't
+	// modify the internal geometry, the point modification made over the screen needs to
+	// be inversedly transformed and then applied to the geometry.
 
 	var path = this.MOUSE_SELECTED.object.parent;
 
+	this.plane.lookAt( this.camera.position );
+	this.plane.up = this.camera.up;
+
 	if(path.FACING_CAMERA){
-		console.log(this.MOUSE_SELECTED.point);
 		this.plane.position.copy( this.MOUSE_SELECTED.point );
 	} else {
 		this.plane.position.copy( path.points[this.MOUSE_SELECTED.index] );
 	}
 
-	this.plane.lookAt( this.camera.position );
-	this.plane.up = this.camera.up;
-
 	var intersects = this.raycaster.intersectObject( this.plane );
 
-	path.setPointAt(intersects[0].point.applyMatrix4(this.camera.matrixWorldInverse).setZ(0), this.MOUSE_SELECTED.index);
+	if(path.FACING_CAMERA){
+		var inversedPathMatrix = new THREE.Matrix4();
+			inversedPathMatrix.getInverse(path.matrixWorld);
+		var point = intersects[0].point.clone();
+			point.applyMatrix4(inversedPathMatrix);
+		path.setPointAt(point, this.MOUSE_SELECTED.index);
+	} else {
+		path.setPointAt(intersects[0].point, this.MOUSE_SELECTED.index);
+	}
+
 	this.MOUSE_SELECTED.point = intersects[0].point;
 }
 

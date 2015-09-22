@@ -121,16 +121,20 @@ EditablePath.prototype.setPointAt = function(point, index){
 }
 
 EditablePath.prototype.setProject = function(camera){
-	
+
+	var d = camera.projectionMatrix.elements[14],
+		l = camera.position.length(),
+		homoZ = (l + 0.5 * d)/l;
+		console.log(homoZ);
+
+	var rotation = new THREE.Matrix4();
+		rotation.extractRotation(camera.matrixWorldInverse);
+
 	this.points.forEach(function(e){
-		e = e.project(camera);
-
-		e.x *= 35 * camera.aspect;
-		e.y *= 35;
-		e.z = 0;
-
+		e.project(camera).setZ(homoZ).unproject(camera).applyMatrix4(rotation);
 	})
 	this.update();
+
 	this.FACING_CAMERA = true;
 }
 
