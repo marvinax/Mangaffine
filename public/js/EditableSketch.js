@@ -15,7 +15,7 @@ EditableSketch = function(renderer, scene, camera, controls){
 					new THREE.PlaneBufferGeometry( 40, 40, 8, 8 ),
 					new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.15, side: THREE.DoubleSide, transparent: true } )
 				);
-	this.plane.visible = true;
+	this.plane.visible = false;
 	scene.add( this.plane );
 
 	this.raycaster = new THREE.Raycaster();
@@ -97,7 +97,7 @@ EditableSketch = function(renderer, scene, camera, controls){
 			if (finish){
 
 				if(closed){
-					var p = raycaster.intersectObject( this.plane )[0].point;
+					var p = this.getPointAtZeroPlane(this.mouse, this.camera);
 					this.NEWPATH.addPoint(p);
 					this.NEWPATH.CLOSED = true;
 				}
@@ -128,7 +128,7 @@ EditableSketch = function(renderer, scene, camera, controls){
 
 				} else {
 
-					this.NEWPATH = new EditablePath([this.START, this.START, p.clone(), p.clone()], this.NEWPATHNAME);
+					this.NEWPATH = new EditablePath([this.START.clone(), this.START.clone(), p.clone(), p.clone()], this.NEWPATHNAME);
 					this.add(this.NEWPATH);
 					this.NEWPATH.name = this.NEWPATHNAME;
 					this.START = null;
@@ -245,19 +245,7 @@ EditableSketch.prototype.selectPathPoint = function(){
 		// console.log(intersects.map(function(e){return e.index}));
 		this.ctrl.enabled = false;
 
-		if(intersects.length ==2 && intersects[0].index == 0) {
-
-			this.MOUSE_SELECTED = intersects[ 1 ];
-
-		} else if (intersects.length == 3){
-			// for non-end point over the path.
-			this.MOUSE_SELECTED = intersects[2];
-
-		} else {
-
-			this.MOUSE_SELECTED = intersects[0];
-
-		}
+		this.MOUSE_SELECTED = intersects[0];
 
 		this.container.style.cursor = 'move';
 
@@ -304,6 +292,8 @@ EditableSketch.prototype.movePathPoint = function(){
 	}
 
 	this.MOUSE_SELECTED.point = intersects[0].point;
+	console.log(path.points[0]);
+	console.log(path.points[1]);
 }
 
 EditableSketch.prototype.getPointAtZeroPlane = function(mouse, camera){
