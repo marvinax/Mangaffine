@@ -112,11 +112,8 @@ EditableSketch = function(renderer, scene, camera, controls){
 
 
 		if (this.ADDING) {
-			console.log()
-			var p = raycaster.intersectObject( this.plane )[0].point;
-
+			var p = this.getPointAtZeroPlane(this.mouse, this.camera);
 			controls.enabled = false;
-
 
 			if (!this.NEWPATH){
 				
@@ -140,10 +137,6 @@ EditableSketch = function(renderer, scene, camera, controls){
 			} else {
 
 				this.NEWPATH.addPoint(p);
-
-				// For showing the 3D point coordinates
-				// console.log(this.NEWPATH.path.points.map(function(e){return e.x+" "+e.y+" "+e.z}));
-				// console.log(this.NEWPATH.path.children.map(function(e){return e.points.map(function(e){return e.x+" "+e.y+" "+e.z})}));
 
 			}
 		}
@@ -174,7 +167,7 @@ EditableSketch.prototype.constructor = EditableSketch;
 
 EditableSketch.prototype.updateFacingCamera = function(){
 	this.children.forEach(function(path){
-		if(path.FACING_CAMERA){
+		if(path.FLATTENED){
 			path.up = this.camera.up;
 			path.lookAt(this.camera.position);
 			path.updateMatrixWorld();
@@ -212,7 +205,7 @@ EditableSketch.prototype.detectPathPoint = function(){
 			this.plane.lookAt( this.camera.position );
 			this.plane.up = this.camera.up;
 
-			if(path.FACING_CAMERA){
+			if(path.FLATTENED){
 				var inversedPathMatrix = new THREE.Matrix4();
 					inversedPathMatrix.getInverse(path.matrixWorld);
 
@@ -292,7 +285,7 @@ EditableSketch.prototype.movePathPoint = function(){
 	this.plane.lookAt( this.camera.position );
 	this.plane.up = this.camera.up;
 
-	if(path.FACING_CAMERA){
+	if(path.FLATTENED){
 		this.plane.position.copy( this.MOUSE_SELECTED.point );
 	} else {
 		this.plane.position.copy( path.points[this.MOUSE_SELECTED.index] );
@@ -300,7 +293,7 @@ EditableSketch.prototype.movePathPoint = function(){
 
 	var intersects = this.raycaster.intersectObject( this.plane );
 
-	if(path.FACING_CAMERA){
+	if(path.FLATTENED){
 		var inversedPathMatrix = new THREE.Matrix4();
 			inversedPathMatrix.getInverse(path.matrixWorld);
 		var point = intersects[0].point.clone();
@@ -311,6 +304,19 @@ EditableSketch.prototype.movePathPoint = function(){
 	}
 
 	this.MOUSE_SELECTED.point = intersects[0].point;
+}
+
+EditableSketch.prototype.getPointAtZeroPlane = function(mouse, camera){
+
+	var d = camera.projectionMatrix.elements[14],
+		l = camera.position.length(),
+		z = (l + 0.5 * d)/l;
+
+	var p = new THREE.Vector3(mouse.x, mouse.y, z);
+		p.unproject(camera);
+
+	return p;
+
 }
 
 module.exports = EditableSketch;

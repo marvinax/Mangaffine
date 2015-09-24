@@ -25,9 +25,6 @@ Path.prototype.removePoint = function(){
 
 Path.prototype.setPointAt = function(point, index){
 
-	var curveIndex = Math.floor(index / 3),
-		pointIndex = index % 3;
-
 	this.points[index].copy(point);
 	this.update(this.points);
 }
