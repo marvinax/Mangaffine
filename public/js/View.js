@@ -1,5 +1,5 @@
 var THREE = require('three');
-var Trackball = require('three.trackball');
+var Trackball = require('./TrackballControls.js');
 var EditableSketch = require('./EditableSketch.js');
 
 module.exports = (function(){
@@ -61,8 +61,6 @@ module.exports = (function(){
 			ctrl.rotateSpeed = 1.;
 			ctrl.zoomSpeed = 1;
 			ctrl.panSpeed = 0.8;
-			ctrl.noZoom = false;
-			ctrl.noPan = false;
 			ctrl.dynamicDampingFactor = 0.5;
 		},
 
