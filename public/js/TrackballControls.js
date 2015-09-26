@@ -204,33 +204,24 @@ TrackballControls = function ( object, domElement ) {
 
 		var factor;
 
-		// _zoomCursorOffset.set(x, y, z0).unproject(this.object).sub(this.object.position);
+		var zoom = new THREE.Vector3();
 
 		if ( _this.currentState === _this.STATE.TOUCH_ZOOM_PAN ) {
 
 			factor = _touchZoomDistanceStart / _touchZoomDistanceEnd;
 			_touchZoomDistanceStart = _touchZoomDistanceEnd;
 			_eye.multiplyScalar( factor );
-
 		} else {
-			// console.log(_zoomCursorOffset);
 
 			factor = 1.0 + ( _zoomEnd.y - _zoomStart.y ) * _this.zoomSpeed;
 
 			if ( factor !== 1.0 && factor > 0.0 ) {
+				// console.log(_eye);
+				// _eye.multiplyScalar( factor );
+				_this.object.position.add(zoom.copy(_zoomCursorOffset).setLength(2).multiplyScalar(factor*Math.sign(_zoomStart.y)));
+				_this.target.add(zoom);
 
-				_eye.multiplyScalar( factor );
-				_this.object.position.add(_zoomCursorOffset.setLength(factor));
-				_this.target.add(_zoomCursorOffset.setLength(factor));
-
-				if ( _this.staticMoving ) {
-
-					_zoomStart.copy( _zoomEnd );
-
-				} else {
-					_zoomStart.y += ( _zoomEnd.y - _zoomStart.y ) * this.dynamicDampingFactor;
-
-				}
+				_zoomStart.y += ( _zoomEnd.y - _zoomStart.y ) * this.dynamicDampingFactor*2;
 
 			}
 
@@ -483,12 +474,14 @@ TrackballControls = function ( object, domElement ) {
 
 		}
 
-		_zoomCursorOffset.set(	(event.clientX / window.innerWidth ) * 2 - 1,
-								(event.clientY / window.innerHeight ) * 2 + 1,
+		if(_zoomCursorOffset){
+			_zoomCursorOffset.set(	(event.clientX / window.innerWidth ) * 2 - 1,
+								  - (event.clientY / window.innerHeight ) * 2 + 1,
 								z0)
 			.unproject(_this.object).sub(_this.object.position);
-
-		_zoomStart.y += delta * 0.01;
+		}
+		
+		_zoomStart.y += delta * 0.001;
 		_this.dispatchEvent( startEvent );
 		_this.dispatchEvent( endEvent );
 	}
@@ -496,6 +489,7 @@ TrackballControls = function ( object, domElement ) {
 	this.domElement.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
 
 	this.domElement.addEventListener( 'mousedown', mousedown, false );
+	this.domElement.addEventListener( 'mousemove', mousemove, false );
 
 	this.domElement.addEventListener( 'mousewheel', mousewheel, false );
 	this.domElement.addEventListener( 'DOMMouseScroll', mousewheel, false ); // firefox

@@ -292,8 +292,6 @@ EditableSketch.prototype.movePathPoint = function(){
 	}
 
 	this.MOUSE_SELECTED.point = intersects[0].point;
-	console.log(path.points[0]);
-	console.log(path.points[1]);
 }
 
 EditableSketch.prototype.getPointAtZeroPlane = function(mouse, camera){

@@ -66,7 +66,7 @@ module.exports = (function(){
 
 		initScene : function(width, height){
 			camera = new THREE.PerspectiveCamera( 10, width / height, 10, 1000 );
-			camera.position.set(0, 0, 500);
+			camera.position.set(0, 0, 200);
 
 			var ambient = new THREE.AmbientLight(0x202020);
 
@@ -119,8 +119,6 @@ module.exports = (function(){
 			this.canvasElement = canvasElement;
 			this.sketch = sketch;
 			
-			// Notably, some matrix are updated after the first time that
-			// this.render() function is executed.
 			this.render();
 
 			this.animate();
